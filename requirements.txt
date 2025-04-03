@@ -1,6 +1,8 @@
+useful-moonshine-onnx@git+https://git@github.com/usefulsensors/moonshine.git#subdirectory=moonshine-onnx
+torch
 onnxruntime
 numpy
 sounddevice
 pyserial
 silero-vad
-useful-moonshine-onnx@git+https://git@github.com/usefulsensors/moonshine.git#subdirectory=moonshine-onnx
+numba>=0.60
