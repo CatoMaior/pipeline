@@ -12,7 +12,10 @@ Ensure the following dependencies are installed:
 - **ONNX Runtime**: Required for the Silero VAD and Moonshine models
 - **SoundDevice**: For audio input and playback
 - **Serial Communication**: Python's `pyserial` library
-- **llama.cpp**: For LLM inference
+- **llama.cpp**: For LLM inference. Suggested models:
+  - [Gemma3-1B-GGUF](https://huggingface.co/pjh64/Gemma3-1B-GGUF/tree/main)
+  - [Gemma-3-4b-it-GGUF](https://huggingface.co/unsloth/gemma-3-4b-it-GGUF/tree/main)
+  - [Granite-3.2-2b-instruct-GGUF](https://huggingface.co/Mungert/granite-3.2-2b-instruct-GGUF/tree/main)
 
 ### Python Packages
 Install the required Python packages using:
