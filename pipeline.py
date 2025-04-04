@@ -2,10 +2,10 @@ import logging
 import numpy as np
 import sounddevice as sd
 from queue import Queue
-from serial import Serial
 from silero_vad import VADIterator, load_silero_vad
 from sounddevice import InputStream
 from os import path
+from piper.voice import PiperVoice
 import re
 import subprocess
 import sys
@@ -13,6 +13,7 @@ import os
 import requests
 from tqdm import tqdm
 import wave
+import datetime
 
 import config
 import transcriber
@@ -43,7 +44,7 @@ if not config.LLM_MODEL in models.supported_models.keys():
 PATH = path.dirname(path.abspath(__file__))
 MODEL_PATH = f"{PATH}/{config.LLM_MODEL_DIR}/{config.LLM_MODEL}.gguf"
 
-logger.info("Starting pipeline.")
+logger.debug("Starting pipeline.")
 logger.debug("Configuration settings:")
 for key, value in vars(config).items():
 	if not key.startswith("__"):
@@ -71,15 +72,14 @@ if not os.path.exists(MODEL_PATH):
 		logger.critical("Failed to download the model: %s", e)
 		sys.exit(1)
 
-if config.LLM_INFER:
-	process = subprocess.Popen(
-		f"{config.LLM_INFER_EXE} -m '{MODEL_PATH}' -sys '{config.LLM_SYSPROMPT}' -st --simple-io",
-		stdout=subprocess.PIPE,
-		stderr=subprocess.PIPE,
-		stdin=subprocess.PIPE,
-		text=True,
-		shell=True,
-	)
+process = subprocess.Popen(
+	f"{config.LLM_INFER_EXE} -m '{MODEL_PATH}' -sys '{config.LLM_SYSPROMPT}' -st --simple-io",
+	stdout=subprocess.PIPE,
+	stderr=subprocess.PIPE,
+	stdin=subprocess.PIPE,
+	text=True,
+	shell=True,
+)
 
 vad_model = load_silero_vad(onnx=True)
 if vad_model is None:
@@ -109,89 +109,172 @@ recording = False
 start_idx = None
 end_idx = None
 
-if config.LISTEN_FROM_WAV:
-	logger.info("Reading audio from WAV file: %s", config.WAV_FILE_PATH)
-	if not os.path.exists(config.WAV_FILE_PATH):
-		logger.critical("WAV file not found: %s", config.WAV_FILE_PATH)
-		sys.exit(1)
-	try:
-		with wave.open(config.WAV_FILE_PATH, 'rb') as wav_file:
-			speech_segment = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16).astype(np.float32)
-	except Exception as e:
-		logger.critical("Failed to read WAV file: %s", e)
-		sys.exit(1)
-else:
-	with stream:
-		logger.info("Awaiting voice input.")
-		while True:
-			chunk = q.get()
-			if chunk is None or len(chunk) == 0:
-				logger.error("Received empty audio chunk from queue.")
-				continue
+interaction_mode = input(
+	"\n==============================\n"
+	"INTERACTION MODE SELECTION\n"
+	"==============================\n"
+	"Do you want to interact via:\n"
+	"  1. Audio interaction\n"
+	"  2. Writing interaction\n"
+	"(default is 1): "
+).strip()
+use_audio = interaction_mode == '1' if interaction_mode in ['1', '2'] else True
 
-			speech_dict = vad(chunk)
-			speech_buffer = np.concatenate((speech_buffer, chunk))
-
-			if speech_dict:
-				logger.debug(f"VAD result: {speech_dict}")
-
-				if "start" in speech_dict and not recording:
-					recording = True
-					start_idx = len(speech_buffer) - len(chunk)
-					logger.info("Voice detected. Recording started.")
-
-				elif "end" in speech_dict and recording:
-					end_idx = len(speech_buffer)
-					logger.debug("End of speech detected. Beginning transcription.")
-					break
-
-			if recording and len(speech_buffer) / config.SAMPLING_RATE > config.MAX_SPEECH_SECS:
-				end_idx = len(speech_buffer)
-				logger.info("Maximum recording duration reached. Beginning transcription.")
-				break
-	if start_idx is not None and end_idx is not None:
-		speech_segment = speech_buffer[int(start_idx * 0.9):int(end_idx * 1.1)]
-		logger.debug(f"Recorded audio duration: {len(speech_segment)/config.SAMPLING_RATE:.2f} seconds")
+if not use_audio:
+	from questions import questions
+	text_input_choice = input(
+		"\n==============================\n"
+		"TEXT INPUT MODE\n"
+		"==============================\n"
+		"Do you want to:\n"
+		"  1. Write your own input\n"
+		"  2. Use a predefined question\n"
+		"(default is 2): "
+	).strip()
+	if text_input_choice != '1':
+		print("\nAvailable Questions:")
+		for idx, question in enumerate(questions, start=1):
+			print(f"  {idx}. {question}")
+		question_idx = input(
+			"\nEnter the number of the question you want to use (default is 1): "
+		).strip()
+		question_idx = int(question_idx) - 1 if question_idx.isdigit() else 0
+		transcribed = questions[question_idx]
 	else:
-		logger.warning("No speech was detected.")
-		process.kill()
-		sys.exit(0)
+		transcribed = input(
+			"Enter your input text: "
+		).strip()
+else:
+	user_choice = input(
+		"\n==============================\n"
+		"AUDIO INPUT MODE\n"
+		"==============================\n"
+		"Do you want to listen from:\n"
+		"  1. A WAV file\n"
+		"  2. The microphone\n"
+		"(default is 1): "
+	).strip()
+	listen_from_wav = user_choice == '1' if user_choice in ['1', '2'] else True
 
-if config.ENABLE_PLAYBACK:
-	logger.info("Playing back recorded audio.")
-	sd.play(speech_segment, samplerate=config.SAMPLING_RATE)
-	sd.wait()
-transcribed = transcriber(speech_segment.flatten())
-logger.info("Transcription: %s", transcribed)
+	if listen_from_wav:
+		default_wav_path = config.WAV_FILE_PATH
+		wav_file_path = input(
+			f"\n==============================\n"
+			"WAV FILE INPUT\n"
+			"==============================\n"
+			f"Enter the relative path to the WAV file (default: {default_wav_path}): "
+		).strip()
+		wav_file_path = wav_file_path if wav_file_path else default_wav_path
 
-if len(transcribed) == 0:
-	logger.error("Transcription is empty.")
+		logger.debug("Reading audio from WAV file: %s", wav_file_path)
+		if not os.path.exists(wav_file_path):
+			logger.critical("WAV file not found: %s", wav_file_path)
+			sys.exit(1)
+		try:
+			with wave.open(wav_file_path, 'rb') as wav_file:
+				speech_segment = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16).astype(np.float32)
+		except Exception as e:
+			logger.critical("Failed to read WAV file: %s", e)
+			sys.exit(1)
+	else:
+		with stream:
+			logger.info("Awaiting voice input.")
+			while True:
+				chunk = q.get()
+				if chunk is None or len(chunk) == 0:
+					logger.error("Received empty audio chunk from queue.")
+					continue
+
+				speech_dict = vad(chunk)
+				speech_buffer = np.concatenate((speech_buffer, chunk))
+
+				if speech_dict:
+					logger.debug(f"VAD result: {speech_dict}")
+
+					if "start" in speech_dict and not recording:
+						recording = True
+						start_idx = len(speech_buffer) - len(chunk)
+						logger.info("Voice detected. Recording started.")
+
+					elif "end" in speech_dict and recording:
+						end_idx = len(speech_buffer)
+						logger.debug("End of speech detected. Beginning transcription.")
+						break
+
+				if recording and len(speech_buffer) / config.SAMPLING_RATE > config.MAX_SPEECH_SECS:
+					end_idx = len(speech_buffer)
+					logger.info("Maximum recording duration reached. Beginning transcription.")
+					break
+		if start_idx is not None and end_idx is not None:
+			speech_segment = speech_buffer[int(start_idx * 0.9):int(end_idx * 1.1)]
+			logger.debug(f"Recorded audio duration: {len(speech_segment)/config.SAMPLING_RATE:.2f} seconds")
+		else:
+			logger.warning("No speech was detected.")
+			process.kill()
+			sys.exit(0)
+
+	if config.ENABLE_PLAYBACK:
+		logger.info("Playing back recorded audio.")
+		sd.play(speech_segment, samplerate=config.SAMPLING_RATE)
+		sd.wait()
+	transcribed = transcriber(speech_segment.flatten())
+	logger.info("Transcription: %s", transcribed)
+
+	if len(transcribed) == 0:
+		logger.error("Transcription is empty.")
+		sys.exit(1)
+
+logger.info("Sending input to LLM.")
+stdout, stderr = process.communicate(transcribed)
+process.wait()
+logger.debug("LLM STDERR: %s", stderr.strip())
+
+match = re.search(r'>\s*(.*?)\s*\[end of text\]', stdout.strip(), re.DOTALL)
+if match:
+	llm_output = match.group(1) + "\r"
+else:
+	logger.error("Failed to extract LLM output.")
+	logger.error("LLM raw output: %s", stdout.strip())
+	llm_output = "[error parsing LLM output]"
 	sys.exit(1)
 
-if config.LLM_INFER:
-	logger.info("Sending transcription to LLM for command generation.")
-	stdout, stderr = process.communicate(transcribed)
-	process.wait()
-	logger.debug("LLM STDERR: %s", stderr.strip())
+logger.info("LLM output: %s", llm_output)
 
-	match = re.search(r'>\s*(.*?)\s*\[end of text\]', stdout.strip())
-	if match:
-		command = match.group(1) + "\r"
-	else:
-		logger.error("Failed to extract LLM output.")
-		logger.error("LLM raw output: %s", stdout.strip())
-		command = "[error parsing LLM output]"
-		sys.exit(1)
-else:
-	command = transcribed + "\r"
+piper_model = config.PIPER_MODEL_PATH
+voice = PiperVoice.load(piper_model)
+os.makedirs(os.path.relpath(config.OUTPUT_DIR), exist_ok=True)
 
-logger.info("Command: %s", command)
+output_choice = input(
+	"\n==============================\n"
+	"OUTPUT OPTIONS\n"
+	"==============================\n"
+	"Do you want to:\n"
+	"  1. Save the output\n"
+	"  2. Play the output\n"
+	"  3. Save and play the output\n"
+	"  4. Do neither\n"
+	"(default is 1): "
+).strip()
+if output_choice not in ['1', '2', '3', '4']:
+	output_choice = '1'
 
-if config.WRITE_SERIAL:
-	if not os.path.exists(config.SERIAL_PORT):
-		logger.critical("Serial port not found: %s. Did you run bt-sender-setup.py?", config.SERIAL_PORT)
-		sys.exit(1)
-	ser = Serial(config.SERIAL_PORT)
-	ser.write(command.encode())
-	ser.close()
-	logger.info(f"Command sent to {config.SERIAL_PORT}.")
+if output_choice in ['1', '3']:
+	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+	default_filename = f"{config.OUTPUT_DIR}/output_{timestamp}.wav"
+	filename = input(
+		f"\n==============================\n"
+		"SAVE OUTPUT\n"
+		"==============================\n"
+		f"Enter the relative filename to save the output (default: {default_filename}): "
+	).strip()
+	filename = filename if filename else default_filename
+	with wave.open(filename, "w") as wav_file:
+		audio = voice.synthesize(llm_output, wav_file)
+		wav_file.close()
+	logger.info("Audio saved to %s", filename)
+
+if output_choice in ['2', '3']:
+	audio = voice.synthesize(llm_output)
+	sd.play(audio)
+	sd.wait()
+	logger.info("Audio playback completed.")

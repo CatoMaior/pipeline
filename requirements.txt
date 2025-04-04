@@ -5,4 +5,6 @@ numpy
 sounddevice
 pyserial
 silero-vad
-numba>=0.60
+numba==0.60
+piper-tts
+pyparsing
