@@ -243,10 +243,10 @@ output_choice = input(
 	"  2. Play the output\n"
 	"  3. Save and play the output\n"
 	"  4. Do neither\n"
-	"(default is 1): "
+	"(default is 4): "
 ).strip()
 if output_choice not in ['1', '2', '3', '4']:
-	output_choice = '1'
+	output_choice = '4'
 
 if output_choice in ['1', '3']:
 	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
