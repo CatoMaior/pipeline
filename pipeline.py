@@ -71,34 +71,6 @@ process = subprocess.Popen(
 	shell=True,
 )
 
-vad_model = load_silero_vad(onnx=True)
-if vad_model is None:
-	logger.critical("VAD model failed to load.")
-	sys.exit(1)
-
-vad = VADIterator(
-	model=vad_model,
-	sampling_rate=config.SAMPLING_RATE,
-	threshold=config.VAD_THRESHOLD,
-	min_silence_duration_ms=config.VAD_MIN_SILENCE_MS
-)
-
-transcriber = transcriber.Transcriber(logger=logger)
-
-q = Queue()
-stream = InputStream(
-	samplerate=config.SAMPLING_RATE,
-	channels=1,
-	blocksize=config.CHUNK_SIZE,
-	dtype=np.float32,
-	callback=create_input_callback(q),
-)
-
-speech_buffer = np.empty(0, dtype=np.float32)
-recording = False
-start_idx = None
-end_idx = None
-
 interaction_mode = input(
 	"\n==============================\n"
 	"INTERACTION MODE SELECTION\n"
@@ -135,6 +107,7 @@ if not use_audio:
 			"Enter your input text: "
 		).strip()
 else:
+	transcriber = transcriber.Transcriber(logger=logger)
 	user_choice = input(
 		"\n==============================\n"
 		"AUDIO INPUT MODE\n"
@@ -167,6 +140,33 @@ else:
 			logger.critical("Failed to read WAV file: %s", e)
 			sys.exit(1)
 	else:
+
+		vad_model = load_silero_vad(onnx=True)
+		if vad_model is None:
+			logger.critical("VAD model failed to load.")
+			sys.exit(1)
+
+		vad = VADIterator(
+			model=vad_model,
+			sampling_rate=config.SAMPLING_RATE,
+			threshold=config.VAD_THRESHOLD,
+			min_silence_duration_ms=config.VAD_MIN_SILENCE_MS
+		)
+
+		q = Queue()
+		stream = InputStream(
+			samplerate=config.SAMPLING_RATE,
+			channels=1,
+			blocksize=config.CHUNK_SIZE,
+			dtype=np.float32,
+			callback=create_input_callback(q),
+		)
+
+		speech_buffer = np.empty(0, dtype=np.float32)
+		recording = False
+		start_idx = None
+		end_idx = None
+
 		with stream:
 			logger.info("Awaiting voice input.")
 			while True:
