@@ -19,7 +19,10 @@ cd pipeline
 ```
 
 ### 3. Run setup script
-Run `./setup.sh`. It creates a virtual environment and installs the dependencies.
+Run the setup script. It creates a virtual environment and installs the dependencies.
+```
+./setup.sh
+```
 
 ### 4. Run the Pipeline
 Start the main pipeline script:
