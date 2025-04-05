@@ -1,6 +1,6 @@
 questions = [
     "If all roses are flowers and some flowers are red, can we deduce that some roses are red? Why?",
-    "A brick weights 1 kg plus half of its weight. How much does the brick weight?",
+    "A brick weights 1 kg plus half of the weight of a brick. How much does the brick weight?",
     "If it rains, the ground will be wet. The ground is wet. Did it rain?",
     "If you turn left three times in a row, which direction are you facing compared to your starting position?",
     "On a street there is a man who offers you a bet: He throws a coin and if it is tails you get $3. If it is heads you lose $1. You can play the game how many times you want. Should you start playing? Why?",
