@@ -22,7 +22,10 @@ wget --quiet --show-progress -O llm-models/gemma3-1b.gguf \
 
 # Install uv if not already installed
 if ! command -v uv &> /dev/null; then
-    wget --quiet --show-progress -qO- https://astral.sh/uv/install.sh | sh
+    wget --quiet --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh
+	chmod +x /tmp/uv-installer.sh
+	/tmp/uv-installer.sh --quiet
+	source $HOME/.local/bin/env
 fi
 
 # Set up Python environment
