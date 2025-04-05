@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Parse command-line arguments
-SKIP_SETUP=false
+ONLY_PYTHON_SETUP=false
 for arg in "$@"; do
     case $arg in
-        --skip-setup)
-            SKIP_SETUP=true
+        --only-python-setup)
+            ONLY_PYTHON_SETUP=true
             shift
             ;;
         *)
@@ -13,7 +13,7 @@ for arg in "$@"; do
     esac
 done
 
-if [ "$SKIP_SETUP" = false ]; then
+if [ "$ONLY_PYTHON_SETUP" = false ]; then
     # Clone and build llama.cpp
     git clone git@github.com:ggml-org/llama.cpp.git
     cd llama.cpp
