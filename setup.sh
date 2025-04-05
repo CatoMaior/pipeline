@@ -1,24 +1,39 @@
 #!/bin/bash
 
-# Clone and build llama.cpp
-git clone git@github.com:ggml-org/llama.cpp.git
-cd llama.cpp
-git checkout b4957
-cmake -B build
-cmake --build build --config Release -j $(nproc)
-cd ..
+# Parse command-line arguments
+SKIP_SETUP=false
+for arg in "$@"; do
+    case $arg in
+        --skip-setup)
+            SKIP_SETUP=true
+            shift
+            ;;
+        *)
+            ;;
+    esac
+done
 
-# Download Piper models
-mkdir -p piper-models
-wget --quiet --show-progress -O piper-models/en_US-amy-medium.onnx \
-    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
-wget --quiet --show-progress -O piper-models/en_US-amy-medium.onnx.json \
-    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
+if [ "$SKIP_SETUP" = false ]; then
+    # Clone and build llama.cpp
+    git clone git@github.com:ggml-org/llama.cpp.git
+    cd llama.cpp
+    git checkout b4957
+    cmake -B build
+    cmake --build build --config Release -j $(nproc)
+    cd ..
 
-# Download LLM models
-mkdir -p llm-models
-wget --quiet --show-progress -O llm-models/gemma3-1b.gguf \
-    https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf?download=true
+    # Download Piper models
+    mkdir -p piper-models
+    wget --quiet --show-progress -O piper-models/en_US-amy-medium.onnx \
+        https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
+    wget --quiet --show-progress -O piper-models/en_US-amy-medium.onnx.json \
+        https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
+
+    # Download LLM models
+    mkdir -p llm-models
+    wget --quiet --show-progress -O llm-models/gemma3-1b.gguf \
+        https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf?download=true
+fi
 
 # Install uv if not already installed
 if ! command -v uv &> /dev/null; then
