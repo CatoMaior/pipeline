@@ -1,36 +1,29 @@
 # Pipeline Project
 
-This repository contains a pipeline for voice-based command transcription and execution. It listens for speech, processes the transcribed text using an LLM to generate a proper command. Each aspect is customizable, and some features can be disabled via configuration files.
+This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation.
 
-## Dependencies
+## Usage instructions
 
-To use all the features of this project, ensure the following dependencies are installed on your device:
-- **Python**: Tested with version 3.13.0
-- **uv**: Tested with version 0.6.10
-- **screen**: Used to visualize data on the serial port. It can typically be installed via your package manager under the name `screen`.
+### 1. Install dependencies
+To install this project you need `git`, `g++` and `cmake`. On Debian-based distributions you can install them with:
+```bash
+sudo apt install git g++ cmake libportaudio2
+```
 
-## Usage Instructions
-
-### 1. Clone the Repository
+### 2. Clone the Repository
 Clone the repository and navigate to its directory:
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone git@github.com:CatoMaior/pipeline.git
+cd pipeline
 ```
 
-### 2. Install Python Dependencies
-It is recommended to use a virtual environment. Install the required Python packages with:
-```bash
-uv pip install -r requirements.txt
-```
-
-### 3. Configure the Environment
-Edit the `config.py` file to adjust the settings to your needs. Detailed explanations of each configuration parameter are provided in `config.py`.
+### 3. Run setup script
+Run `./setup.sh`. Creates a virtual environment and installs the dependencies.
 
 ### 4. Run the Pipeline
 Start the main pipeline script:
 ```bash
+source source .venv/bin/activate
 python pipeline.py
 ```
-
-Logs will be displayed on the standard output.
+You can customize the pipeline by modifying parameters in the `config.py` file. All parameters are thoroughly documented within the file.

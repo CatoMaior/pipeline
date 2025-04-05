@@ -10,14 +10,13 @@ import re
 import subprocess
 import sys
 import os
-import requests
-from tqdm import tqdm
 import wave
 import datetime
 
 import config
 import transcriber
 import models
+from model_downloader import ModelDownloader
 
 logging.basicConfig(
 	level=getattr(logging, config.LOGGING_LEVEL.upper(), logging.INFO),
@@ -57,17 +56,8 @@ if not os.path.exists(MODEL_PATH):
 		logger.critical("No URL found for the specified model: %s", config.LLM_MODEL)
 		sys.exit(1)
 	try:
-		os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-		response = requests.get(model_url, stream=True)
-		response.raise_for_status()
-		total_size = int(response.headers.get('content-length', 0))
-		with open(MODEL_PATH, 'wb') as model_file, tqdm(
-			total=total_size, unit='B', unit_scale=True, desc="Downloading Model"
-		) as progress_bar:
-			for chunk in response.iter_content(chunk_size=8192):
-				model_file.write(chunk)
-				progress_bar.update(len(chunk))
-		logger.info("Model downloaded successfully to %s", MODEL_PATH)
+		downloader = ModelDownloader(config.LLM_MODEL, model_url, MODEL_PATH, logger)
+		downloader.download()
 	except Exception as e:
 		logger.critical("Failed to download the model: %s", e)
 		sys.exit(1)
