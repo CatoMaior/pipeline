@@ -1,4 +1,5 @@
 git+https://git@github.com/usefulsensors/moonshine.git@4a000427bd36a1c2c6d20a86c672dbd850b44c88#subdirectory=moonshine-onnx
+git+https://github.com/ollama/ollama-python.git@3eaa83781d29ddac43511c7e5d207cac5b89aead
 torch==2.6.0
 onnxruntime==1.21.0
 numpy==2.0.2
