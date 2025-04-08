@@ -28,10 +28,8 @@ WAV_FILE_PATH = "input.wav"  # Path to the default WAV file to be used as input
 # ===========================
 # LLM Inference Configuration
 # ===========================
-LLM_INFER_EXE = "llama.cpp/build/bin/llama-cli"  # Path to the LLM inference executable
-LLM_MODEL = "gemma3-1b"  # Name of the LLM model to use.
+LLM_MODEL = "gemma3:1b"  # Name of the LLM model to use.
 							 # Supported models are gemma3-1b, gemma3-4b, granite3.2-2b
-LLM_MODEL_DIR = "llm-models"  # Directory where the LLM model is stored
 LLM_SYSPROMPT = (  # System prompt for the LLM to guide its behavior
     "You are a reasoning assistant. When you answer, do not use any kind of text formatting."
 )

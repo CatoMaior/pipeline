@@ -1,5 +1,7 @@
 import logging
 import numpy as np
+from ollama import ChatResponse, ListResponse, chat
+import ollama
 import sounddevice as sd
 from queue import Queue
 from silero_vad import VADIterator, load_silero_vad
@@ -34,42 +36,11 @@ def create_input_callback(q):
 			logger.error("No input data received in callback")
 	return callback
 
-if not config.LLM_MODEL in models.supported_models.keys():
-	logger.critical("Unsupported model: %s", config.LLM_MODEL)
-	logger.critical("Supported models: %s", ", ".join(models.supported_models.keys()))
-	logger.critical("Please check the LLM_MODEL field in file config.py.")
-	sys.exit(1)
-
-PATH = path.dirname(path.abspath(__file__))
-MODEL_PATH = f"{PATH}/{config.LLM_MODEL_DIR}/{config.LLM_MODEL}.gguf"
-
 logger.debug("Starting pipeline.")
 logger.debug("Configuration settings:")
 for key, value in vars(config).items():
 	if not key.startswith("__"):
 		logger.debug(f"{key}: {value}")
-
-if not os.path.exists(MODEL_PATH):
-	logger.info("Model %s not found locally. Downloading from upstream.", config.LLM_MODEL)
-	model_url = models.supported_models.get(config.LLM_MODEL)
-	if model_url is None:
-		logger.critical("No URL found for the specified model: %s", config.LLM_MODEL)
-		sys.exit(1)
-	try:
-		downloader = ModelDownloader(config.LLM_MODEL, model_url, MODEL_PATH, logger)
-		downloader.download()
-	except Exception as e:
-		logger.critical("Failed to download the model: %s", e)
-		sys.exit(1)
-
-process = subprocess.Popen(
-	f"{config.LLM_INFER_EXE} -m '{MODEL_PATH}' -sys '{config.LLM_SYSPROMPT}' -st --simple-io",
-	stdout=subprocess.PIPE,
-	stderr=subprocess.PIPE,
-	stdin=subprocess.PIPE,
-	text=True,
-	shell=True,
-)
 
 interaction_mode = input(
 	"\n==============================\n"
@@ -200,7 +171,6 @@ else:
 			logger.debug(f"Recorded audio duration: {len(speech_segment)/config.SAMPLING_RATE:.2f} seconds")
 		else:
 			logger.warning("No speech was detected.")
-			process.kill()
 			sys.exit(0)
 
 	if config.ENABLE_PLAYBACK:
@@ -214,21 +184,46 @@ else:
 		logger.error("Transcription is empty.")
 		sys.exit(1)
 
+
+
+llm_messages = [
+	{"role": "system", "content": config.LLM_SYSPROMPT},
+	{"role": "user", "content": transcribed}
+]
+
+# ollama_list: ListResponse = ollama.list()
+# available_models = [m.model for m in ollama_list["models"]]
+
+# # WORK FROM HERE
+
+# logger.info("Checking if the LLM model is available.")
+# if not ollama.is_model_available(config.LLM_MODEL):
+# 	logger.info("Model not found locally. Pulling the model using ollama...")
+# 	try:
+# 		ollama.pull_model(config.LLM_MODEL)
+# 		logger.info("Model pulled successfully.")
+# 	except Exception as e:
+# 		logger.critical("Failed to pull the model: %s", e)
+# 		sys.exit(1)
+
+if "granite" in config.LLM_MODEL:
+	enable_reasoning_choice = input(
+		"\n==============================\n"
+		"ENABLE REASONING\n"
+		"==============================\n"
+		"This model requires reasoning to be explicitly activated. Would you like to enable it?\n"
+		"  1. Yes, enable reasoning\n"
+		"  2. No, keep it disabled\n"
+		"(default is 1): "
+	).strip()
+	if enable_reasoning_choice != '2':
+		llm_messages.insert(0, {"role": "control", "content": "thinking"})
 logger.info("Sending input to LLM.")
-stdout, stderr = process.communicate(transcribed)
-process.wait()
-logger.debug("LLM STDERR: %s", stderr.strip())
+response: ChatResponse = chat(model=config.LLM_MODEL, messages=llm_messages)
 
-match = re.search(r'>\s*(.*?)\s*\[end of text\]', stdout.strip(), re.DOTALL)
-if match:
-	llm_output = match.group(1) + "\r"
-else:
-	logger.error("Failed to extract LLM output.")
-	logger.error("LLM raw output: %s", stdout.strip())
-	llm_output = "[error parsing LLM output]"
-	sys.exit(1)
+llm_output = response['message']['content']
 
-logger.info("LLM output: %s", llm_output)
+logger.info("LLM output: \n%s", llm_output)
 
 piper_model = config.PIPER_MODEL_PATH
 voice = PiperVoice.load(piper_model)
