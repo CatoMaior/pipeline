@@ -35,6 +35,10 @@ if [ "$ONLY_PYTHON_SETUP" = false ]; then
         https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf?download=true
 fi
 
+if ! command -v ollama &> /dev/null; then
+	curl -fsSL https://ollama.com/install.sh | sh
+fi
+
 # Install uv if not already installed
 if ! command -v uv &> /dev/null; then
     wget --quiet --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh

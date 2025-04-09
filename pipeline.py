@@ -6,10 +6,7 @@ import sounddevice as sd
 from queue import Queue
 from silero_vad import VADIterator, load_silero_vad
 from sounddevice import InputStream
-from os import path
 from piper.voice import PiperVoice
-import re
-import subprocess
 import sys
 import os
 import wave
@@ -17,8 +14,6 @@ import datetime
 
 import config
 import transcriber
-import models
-from model_downloader import ModelDownloader
 
 logging.basicConfig(
 	level=getattr(logging, config.LOGGING_LEVEL.upper(), logging.INFO),
@@ -41,6 +36,12 @@ logger.debug("Configuration settings:")
 for key, value in vars(config).items():
 	if not key.startswith("__"):
 		logger.debug(f"{key}: {value}")
+
+try:
+	ollama.ps()
+except Exception as e:
+	logger.critical("%s", e)
+	sys.exit(1)
 
 interaction_mode = input(
 	"\n==============================\n"
@@ -191,20 +192,16 @@ llm_messages = [
 	{"role": "user", "content": transcribed}
 ]
 
-# ollama_list: ListResponse = ollama.list()
-# available_models = [m.model for m in ollama_list["models"]]
+ollama_list: ListResponse = ollama.list()
+available_models = [m.model for m in ollama_list["models"]]
 
-# # WORK FROM HERE
-
-# logger.info("Checking if the LLM model is available.")
-# if not ollama.is_model_available(config.LLM_MODEL):
-# 	logger.info("Model not found locally. Pulling the model using ollama...")
-# 	try:
-# 		ollama.pull_model(config.LLM_MODEL)
-# 		logger.info("Model pulled successfully.")
-# 	except Exception as e:
-# 		logger.critical("Failed to pull the model: %s", e)
-# 		sys.exit(1)
+if config.LLM_MODEL not in available_models:
+	logger.info("Model %s not found in the local model list. Pulling from repository.", config.LLM_MODEL)
+	try:
+		ollama.pull(config.LLM_MODEL)
+	except Exception as e:
+		logger.critical("Failed to pull the model: %s", e)
+		sys.exit(1)
 
 if "granite" in config.LLM_MODEL:
 	enable_reasoning_choice = input(
