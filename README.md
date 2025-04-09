@@ -1,6 +1,7 @@
 # Pipeline Project
 
-This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation.
+This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation. Here is a flowchart of the pipeline:
+![Pipeline Flowchart](pipeline.png)
 
 ## Usage instructions
 
