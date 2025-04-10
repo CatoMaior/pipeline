@@ -26,15 +26,16 @@ if [ "$ONLY_PYTHON_SETUP" = false ]; then
 fi
 
 if ! command -v ollama &> /dev/null; then
-	curl -fsSL https://ollama.com/install.sh | sh
+	wget --quiet --show-progress -O /tmp/installer.sh https://ollama.com/install.sh
+	chmod +x /tmp/installer.sh
+	/tmp/installer.sh
 fi
 
 # Install uv if not already installed
 if ! command -v uv &> /dev/null; then
     wget --quiet --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh
 	chmod +x /tmp/uv-installer.sh
-	/tmp/uv-installer.sh --quiet
-	source $HOME/.local/bin/env
+	/tmp/uv-installer.sh
 fi
 
 # Set up Python environment
