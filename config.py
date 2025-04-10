@@ -39,3 +39,19 @@ LLM_SYSPROMPT = (  # System prompt for the LLM to guide its behavior
 PIPER_MODEL_PATH = "piper-models/en_US-amy-medium.onnx"  # Path to the Piper model
 OUTPUT_DIR = "wav-outputs"  # Directory to save output audio files
 
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) != 2:
+        print("Usage: python config.py <PARAMETER_NAME>")
+        sys.exit(1)
+
+    parameter_name = sys.argv[1]
+    try:
+        # Dynamically fetch the parameter value
+        parameter_value = globals()[parameter_name]
+        print(parameter_value)
+    except KeyError:
+        print(f"Error: Parameter '{parameter_name}' not found in the configuration.")
+        sys.exit(1)
+
