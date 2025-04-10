@@ -29,10 +29,11 @@ if ! command -v ollama &> /dev/null; then
 	curl -fsSL https://ollama.com/install.sh | sh
 	if [ "$EUID" -ne 0 ]; then
 		sudo systemctl enable ollama.service
+		systemctl start ollama.service
 	else
 		systemctl enable ollama.service
+		systemctl start ollama.service
 	fi
-fi
 fi
 
 # Install uv if not already installed
