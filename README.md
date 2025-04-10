@@ -28,7 +28,6 @@ Run the setup script. It creates a virtual environment and installs the dependen
 ### 4. Run the Pipeline
 Start the main pipeline script:
 ```
-source $HOME/.local/bin/env
 source .venv/bin/activate
 python pipeline.py
 ```

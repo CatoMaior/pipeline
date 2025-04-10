@@ -21,8 +21,6 @@ if [ "$ONLY_PYTHON_SETUP" = false ]; then
         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
     wget --quiet --show-progress -O piper-models/en_US-amy-medium.onnx.json \
         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
-
-    mkdir -p llm-models
 fi
 
 if ! command -v ollama &> /dev/null; then
@@ -38,8 +36,11 @@ if ! command -v uv &> /dev/null; then
 	/tmp/uv-installer.sh
 fi
 
+
 # Set up Python environment
 uv python install 3.11.1
 uv venv --python 3.11.1
 source .venv/bin/activate
 uv pip install -r requirements.txt
+
+ollama pull $(python config.py LLM_MODEL)
