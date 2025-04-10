@@ -28,7 +28,8 @@ WAV_FILE_PATH = "input.wav"  # Path to the default WAV file to be used as input
 # ===========================
 # LLM Inference Configuration
 # ===========================
-LLM_MODEL = "granite3.2:2b"  # Name of the LLM model to use.
+LLM_MODEL = "granite3.2:2b"	# Name of the LLM model to use.
+							# Supported models are the ones available in ollama https://ollama.com/
 LLM_SYSPROMPT = (  # System prompt for the LLM to guide its behavior
     "You are a reasoning assistant. When you answer, do not use any kind of text formatting."
 )
