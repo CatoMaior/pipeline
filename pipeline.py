@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from ollama import ChatResponse, ListResponse, chat
+from ollama import ChatResponse, ListResponse, ResponseError, chat
 import ollama
 import sounddevice as sd
 from queue import Queue
@@ -185,23 +185,24 @@ else:
 		logger.error("Transcription is empty.")
 		sys.exit(1)
 
-
-
-llm_messages = [
-	{"role": "system", "content": config.LLM_SYSPROMPT},
-	{"role": "user", "content": transcribed}
-]
-
 ollama_list: ListResponse = ollama.list()
 available_models = [m.model for m in ollama_list["models"]]
 
 if config.LLM_MODEL not in available_models:
 	logger.info("Model %s not found in the local model list. Pulling from repository.", config.LLM_MODEL)
 	try:
-		ollama.pull(config.LLM_MODEL)
-	except Exception as e:
+		ret = os.system(f"ollama pull {config.LLM_MODEL}")
+	except ResponseError as e:
 		logger.critical("Failed to pull the model: %s", e)
 		sys.exit(1)
+	if ret != 0:
+		logger.critical("Download unsuccessful.")
+		sys.exit(1)
+
+llm_messages = [
+	{"role": "system", "content": config.LLM_SYSPROMPT},
+	{"role": "user", "content": transcribed}
+]
 
 if "granite" in config.LLM_MODEL:
 	enable_reasoning_choice = input(
