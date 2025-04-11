@@ -77,7 +77,7 @@ for arg in "$@"; do
 done
 
 # Request sudo password to update Ollama service
-print_message "Requesting sudo access to update Ollama service..."
+print_message "Requesting sudo access..."
 sudo -v
 # Keep sudo session alive
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
