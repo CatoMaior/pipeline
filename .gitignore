@@ -1,8 +1,8 @@
+__pycache__/
 .venv/
 .uv-cache/
-__pycache__/
-.ollama-models/
 .pyenv/
+ollama/
 wav-outputs/
 piper-models/
 notes.txt
