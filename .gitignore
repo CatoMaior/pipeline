@@ -2,6 +2,7 @@
 .uv-cache/
 __pycache__/
 .ollama-models/
+.pyenv/
 wav-outputs/
 piper-models/
 notes.txt
