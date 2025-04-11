@@ -6,7 +6,7 @@ This repository contains an interactive pipeline for voice transcription, local 
 ## Usage instructions
 
 ### 1. Install dependencies
-To install this project you need `git`, `g++` and `cmake`. On Debian-based distributions you can install them with:
+To install this project you need `git`, `g++`, `cmake` and `acl`. On Debian-based distributions you can install them with:
 ```
 sudo apt update
 sudo apt install git g++ cmake libportaudio2 wget curl acl
