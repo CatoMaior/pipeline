@@ -54,15 +54,21 @@ print_help() {
     exit 0
 }
 
-# Parse command-line arguments
-RUN_PARTS=""
+OLLAMA_VERSION="0.6.5"
+PYTHON_VERSION="3.11.1"
+UV_VERSION="0.6.10"
+PYENV_GIT_TAG="97993fcc26999fb9f9d2172afd6914738df274d8"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-OLLAMA_MODELS_DIR="$SCRIPT_DIR/.ollama-models"
+OLLAMA_DIR=$SCRIPT_DIR/ollama
+OLLAMA_MODELS_DIR="$OLLAMA_DIR/models"
 UV_CACHE_DIR="$SCRIPT_DIR/.uv-cache"
 PYENV_ROOT="$SCRIPT_DIR/.pyenv"
 PYENV_EXECUTABLE="$PYENV_ROOT/libexec/pyenv"
-PYTHON_EXE="$PYENV_ROOT/versions/3.11.1/bin/python"
+PYTHON_EXE="$PYENV_ROOT/versions/$PYTHON_VERSION/bin/python"
 
+# Parse command-line arguments
+RUN_PARTS=""
 for arg in "$@"; do
     case $arg in
         --run-parts=*)
@@ -102,22 +108,34 @@ fi
 
 if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
     print_message "Installing Ollama..."
-    wget --show-progress -O /tmp/installer.sh https://ollama.com/install.sh
-    chmod +x /tmp/installer.sh
-    /tmp/installer.sh
+    wget -O /tmp/install.sh https://ollama.com/install.sh
+	mkdir -p "$OLLAMA_DIR"
+    awk '{
+        if ($0 ~ /OLLAMA_INSTALL_DIR=\$\(dirname \${BINDIR}\)/)
+            print "OLLAMA_INSTALL_DIR=\"'$OLLAMA_DIR'\"";
+        else
+            print $0;
+    }' /tmp/install.sh > /tmp/install.sh.tmp && mv /tmp/install.sh.tmp /tmp/install.sh
+    OLLAMA_VERSION=$OLLAMA_VERSION chmod +x /tmp/install.sh
+    /tmp/install.sh
+	sudo ln -s "$OLLAMA_DIR/bin/ollama" "$OLLAMA_DIR"
 fi
 
 if should_run_part "uv" && ! command -v uv &> /dev/null; then
     print_message "Installing UV..."
-    wget --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh
+    wget -O /tmp/uv-installer.sh https://astral.sh/uv/$UV_VERSION/install.sh
     chmod +x /tmp/uv-installer.sh
 	sudo env UV_INSTALL_DIR="/usr/local/bin" /tmp/uv-installer.sh
 fi
 
 if should_run_part "python"; then
     print_message "Setting up Python environment..."
-	curl https://pyenv.run | PYENV_ROOT="$PYENV_ROOT" bash
-	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install 3.11.1
+	git clone https://github.com/pyenv/pyenv.git $PYENV_ROOT
+	cd $PYENV_ROOT
+	git checkout $PYENV_GIT_TAG
+	cd ..
+	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install --list
+	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install $PYTHON_VERSION
     mkdir -p "$UV_CACHE_DIR"
     uv venv --python=$PYTHON_EXE
     source .venv/bin/activate
