@@ -134,7 +134,6 @@ if should_run_part "python"; then
 	cd $PYENV_ROOT
 	git checkout $PYENV_GIT_TAG
 	cd ..
-	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install --list
 	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install $PYTHON_VERSION
     mkdir -p "$UV_CACHE_DIR"
     uv venv --python=$PYTHON_EXE
