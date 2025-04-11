@@ -59,6 +59,9 @@ RUN_PARTS=""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OLLAMA_MODELS_DIR="$SCRIPT_DIR/.ollama-models"
 UV_CACHE_DIR="$SCRIPT_DIR/.uv-cache"
+PYENV_ROOT="$SCRIPT_DIR/.pyenv"
+PYENV_EXECUTABLE="$PYENV_ROOT/libexec/pyenv"
+PYTHON_EXE="$PYENV_ROOT/versions/3.11.1/bin/python"
 
 for arg in "$@"; do
     case $arg in
@@ -113,9 +116,10 @@ fi
 
 if should_run_part "python"; then
     print_message "Setting up Python environment..."
+	curl https://pyenv.run | PYENV_ROOT="$PYENV_ROOT" bash
+	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install 3.11.1
     mkdir -p "$UV_CACHE_DIR"
-    uv python install 3.11.1 --cache-dir "$UV_CACHE_DIR/"
-    uv venv --python 3.11.1 --cache-dir "$UV_CACHE_DIR/"
+    uv venv --python=$PYTHON_EXE
     source .venv/bin/activate
     uv pip install -r requirements.txt --cache-dir "$UV_CACHE_DIR/"
 fi
@@ -124,6 +128,8 @@ if should_run_part "ollama-config"; then
     mkdir -p "$OLLAMA_MODELS_DIR"
     print_message "Setting OLLAMA_MODELS environment variable to $OLLAMA_MODELS_DIR"
     update_ollama_service "$OLLAMA_MODELS_DIR"
+	sleep 1
+	print_message "Pulling Ollama model..."
     ollama pull $(python config.py LLM_MODEL)
 fi
 
