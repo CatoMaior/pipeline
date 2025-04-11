@@ -108,7 +108,7 @@ if should_run_part "uv" && ! command -v uv &> /dev/null; then
     print_message "Installing UV..."
     wget --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh
     chmod +x /tmp/uv-installer.sh
-	sudo env UV_INSTALL_DIR="/usr/local/bin" ./tmp/uv-installer.sh
+	sudo env UV_INSTALL_DIR="/usr/local/bin" /tmp/uv-installer.sh
 fi
 
 if should_run_part "python"; then
