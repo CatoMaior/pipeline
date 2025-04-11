@@ -49,21 +49,21 @@ update_ollama_service() {
 print_help() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
-    echo "  --only-python-setup          Only set up the Python environment."
+    echo "  --run-parts=PARTS            For debugging purposes. Specify which parts to run (comma-separated). Options: piper, ollama-install, ollama-config, uv, python."
     echo "  --help                       Display this help message."
     exit 0
 }
 
 # Parse command-line arguments
-ONLY_PYTHON_SETUP=false
+RUN_PARTS=""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OLLAMA_MODELS_DIR="$SCRIPT_DIR/.ollama-models"
 UV_CACHE_DIR="$SCRIPT_DIR/.uv-cache"
 
 for arg in "$@"; do
     case $arg in
-        --only-python-setup)
-            ONLY_PYTHON_SETUP=true
+        --run-parts=*)
+            RUN_PARTS="${arg#*=}"
             shift
             ;;
         --help)
@@ -76,13 +76,18 @@ for arg in "$@"; do
     esac
 done
 
+# Helper function to check if a part should be run
+should_run_part() {
+    [[ -z "$RUN_PARTS" || "$RUN_PARTS" == *"$1"* ]]
+}
+
 # Request sudo password to update Ollama service
 print_message "Requesting sudo access..."
 sudo -v
 # Keep sudo session alive
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-if [ "$ONLY_PYTHON_SETUP" = false ]; then
+if should_run_part "piper"; then
     print_message "Downloading Piper models..."
     # Download Piper models
     mkdir -p piper-models
@@ -92,32 +97,35 @@ if [ "$ONLY_PYTHON_SETUP" = false ]; then
         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
 fi
 
-if ! command -v ollama &> /dev/null; then
+if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
     print_message "Installing Ollama..."
     wget --show-progress -O /tmp/installer.sh https://ollama.com/install.sh
     chmod +x /tmp/installer.sh
     /tmp/installer.sh
 fi
 
-print_message "Setting OLLAMA_MODELS environment variable to $OLLAMA_MODELS_DIR"
-update_ollama_service "$OLLAMA_MODELS_DIR"
-
-if ! command -v uv &> /dev/null; then
+if should_run_part "uv" && ! command -v uv &> /dev/null; then
     print_message "Installing UV..."
     wget --show-progress -O /tmp/uv-installer.sh https://astral.sh/uv/install.sh
     chmod +x /tmp/uv-installer.sh
     /tmp/uv-installer.sh
 fi
 
-print_message "Setting up Python environment..."
-mkdir -p "$UV_CACHE_DIR"
-uv python install 3.11.1 --cache-dir "$UV_CACHE_DIR/"
-uv venv --python 3.11.1 --cache-dir "$UV_CACHE_DIR/"
-source .venv/bin/activate
-uv pip install -r requirements.txt --cache-dir "$UV_CACHE_DIR/"
+if should_run_part "python"; then
+    print_message "Setting up Python environment..."
+    mkdir -p "$UV_CACHE_DIR"
+    uv python install 3.11.1 --cache-dir "$UV_CACHE_DIR/"
+    uv venv --python 3.11.1 --cache-dir "$UV_CACHE_DIR/"
+    source .venv/bin/activate
+    uv pip install -r requirements.txt --cache-dir "$UV_CACHE_DIR/"
+fi
 
-mkdir -p "$OLLAMA_MODELS_DIR"
-ollama pull $(python config.py LLM_MODEL)
+if should_run_part "ollama-config"; then
+    mkdir -p "$OLLAMA_MODELS_DIR"
+    print_message "Setting OLLAMA_MODELS environment variable to $OLLAMA_MODELS_DIR"
+    update_ollama_service "$OLLAMA_MODELS_DIR"
+    ollama pull $(python config.py LLM_MODEL)
+fi
 
 echo -e "${GREEN}****************************************${NC}"
 echo -e "${GREEN}** Setup completed successfully.${NC}"
