@@ -1,6 +1,7 @@
-__pycache__/
 .venv/
-llm-models/
+.uv-cache/
+__pycache__/
+.ollama-models/
 wav-outputs/
 piper-models/
-llama.cpp/
+notes.txt
