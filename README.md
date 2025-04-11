@@ -9,7 +9,7 @@ This repository contains an interactive pipeline for voice transcription, local 
 To install this project you need `git`, `g++` and `cmake`. On Debian-based distributions you can install them with:
 ```
 sudo apt update
-sudo apt install git g++ cmake libportaudio2 wget
+sudo apt install git g++ cmake libportaudio2 wget curl awk grep sed tee xargs
 ```
 
 ### 2. Clone the Repository
@@ -26,9 +26,11 @@ Run the setup script. It creates a virtual environment and installs the dependen
 ```
 
 ### 4. Run the Pipeline
-Start the main pipeline script:
+Activate the virtual environment:
 ```
 source .venv/bin/activate
-python pipeline.py
 ```
+Start the main pipeline script:
+```
+python pipeline.py
 You can customize the pipeline by modifying parameters in the `config.py` file. All parameters are thoroughly documented within the file.
