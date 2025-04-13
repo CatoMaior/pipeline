@@ -102,7 +102,7 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 if should_run_part "dependencies"; then
     print_message "Installing system dependencies..."
     sudo apt update
-    sudo apt install -y g++ cmake libportaudio2 wget curl acl zlib1g zlib1g-dev libssl-dev libbz2-dev libsqlite3-dev
+    sudo apt install -y g++ cmake libportaudio2 wget curl acl zlib1g build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 fi
 
 if should_run_part "piper"; then
