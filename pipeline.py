@@ -6,15 +6,14 @@ import sounddevice as sd
 from queue import Queue
 from silero_vad import VADIterator, load_silero_vad
 from sounddevice import InputStream
-from piper.voice import PiperVoice
 import sys
 import os
 import wave
 import datetime
-import json
 
 import config
-import transcriber
+from synthesizer import Synthesizer
+from transcriber import Transcriber
 
 logging.basicConfig(
 	level=getattr(logging, config.LOGGING_LEVEL.upper(), logging.INFO),
@@ -80,7 +79,7 @@ if not use_audio:
 			"Enter your input text: "
 		).strip()
 else:
-	transcriber = transcriber.Transcriber(logger=logger)
+	transcriber = Transcriber(logger=logger)
 	user_choice = input(
 		"\n==============================\n"
 		"AUDIO INPUT MODE\n"
@@ -224,12 +223,7 @@ llm_output = response['message']['content']
 
 logger.info("LLM output: \n%s", llm_output)
 
-piper_model = config.PIPER_MODEL_PATH
-voice = PiperVoice.load(piper_model)
-os.makedirs(os.path.relpath(config.OUTPUT_DIR), exist_ok=True)
-with open(config.PIPER_MODEL_PATH + ".json", "r") as model_config_file:
-	piper_config = json.load(model_config_file)
-	piper_sample_rate = piper_config["audio"]["sample_rate"]
+synthesizer = Synthesizer(config.PIPER_MODEL_PATH, config.OUTPUT_DIR)
 
 output_choice = input(
 	"\n==============================\n"
@@ -255,21 +249,13 @@ if output_choice in ['1', '3']:
 		f"Enter the relative filename to save the output (default: {default_filename}): "
 	).strip()
 	filename = filename if filename else default_filename
-	with wave.open(filename, "w") as wav_file:
-		voice.synthesize(llm_output, wav_file)
-		wav_file.close()
+	synthesizer.save_output(llm_output, filename)
 	logger.info("Audio saved to %s", filename)
 
 if output_choice == '3':
-		with wave.open(filename, "rb") as wav_file:
-			audio_data = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16)
-			sd.play(audio_data, samplerate=wav_file.getframerate())
-			sd.wait()
-		logger.info("Audio playback completed.")
+	synthesizer.play_output(filename)
+	logger.info("Audio playback completed.")
 
 elif output_choice == '2':
-	raw_audio = b''.join(voice.synthesize_stream_raw(llm_output))
-	audio = np.frombuffer(raw_audio, dtype=np.int16)
-	sd.play(audio, samplerate=piper_sample_rate)
-	sd.wait()
+	synthesizer.play_raw_output(llm_output)
 	logger.info("Audio playback completed.")
