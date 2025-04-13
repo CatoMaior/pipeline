@@ -39,7 +39,7 @@ update_ollama_service() {
 
     sudo mv "$temp_file" "$service_file"
 
-	sudo mkdir /usr/share/ollama
+	sudo mkdir -p /usr/share/ollama
 	sudo setfacl -m u:ollama:rwx /usr/share/ollama
     sudo systemctl daemon-reload
 	setfacl -m u:ollama:rwx ~
