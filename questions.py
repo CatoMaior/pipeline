@@ -1,3 +1,5 @@
+import argparse
+
 questions = [
     "If all roses are flowers and some flowers are red, can we deduce that some roses are red? Why?",
     "A brick weights 1 kg plus half of the weight of a brick. How much does the brick weight?",
@@ -10,3 +12,16 @@ questions = [
 	"If you are in a dark room with a candle, a wood stove, and a gas lamp, and you only have one match, which do you light first?",
 	"If a plane crashes on the border of two countries, where do they bury the survivors?"
 ]
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Retrieve a specific question by its index.")
+    parser.add_argument(
+        "-i", "--index", type=int, required=True,
+        help=f"The index of the question to retrieve (between 0 and {len(questions) - 1})."
+    )
+    args = parser.parse_args()
+
+    if 0 <= args.index < len(questions):
+        print(questions[args.index])
+    else:
+        print(f"Error: Index out of range. Please provide an index between 0 and {len(questions) - 1}.")
