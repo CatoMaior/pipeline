@@ -49,7 +49,7 @@ update_ollama_service() {
 print_help() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
-    echo "  --run-parts=PARTS            For debugging purposes. Specify which parts to run (comma-separated). Options: piper, ollama-install, ollama-config, uv, python."
+    echo "  --run-parts=PARTS            For debugging purposes. Specify which parts to run (comma-separated). Options: dependencies, piper, ollama-install, ollama-config, uv, python."
     echo "  --help                       Display this help message."
     exit 0
 }
@@ -95,6 +95,12 @@ print_message "Requesting sudo access..."
 sudo -v
 # Keep sudo session alive
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+if should_run_part "dependencies"; then
+    print_message "Installing system dependencies..."
+    sudo apt update
+    sudo apt install -y g++ cmake libportaudio2 wget curl acl zlib1g zlib1g-dev libssl-dev libbz2-dev libsqlite3-dev
+fi
 
 if should_run_part "piper"; then
     print_message "Downloading Piper models..."
