@@ -33,4 +33,13 @@ source .venv/bin/activate
 Start the main pipeline script:
 ```
 python pipeline.py
+```
 You can customize the pipeline by modifying parameters in the `config.py` file. All parameters are thoroughly documented within the file.
+
+## Performance Tests
+
+After activating the virtual environment as in the previous section, run `performance_tests.py` to evaluate the pipeline components' performance:
+```
+python performance_tests.py
+```
+The results are logged to the console and saved in the `performance-logs` directory. The log file is named with the format `performance_log_<hostname>_<timestamp>.txt`, where `<hostname>` is the machine's hostname and `<timestamp>` is the current date and time.
