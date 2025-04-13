@@ -38,10 +38,13 @@ update_ollama_service() {
     ' "$service_file" > "$temp_file"
 
     sudo mv "$temp_file" "$service_file"
+
+	sudo mkdir /usr/share/ollama
+	sudo setfacl -m u:ollama:rwx /usr/share/ollama
     sudo systemctl daemon-reload
 	setfacl -m u:ollama:rwx ~
 	setfacl -m u:ollama:rwx $models_path
-    sudo systemctl restart ollama.service
+    sudo systemctl start ollama.service
 
 }
 
@@ -124,6 +127,7 @@ if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
     }' /tmp/install.sh > /tmp/install.sh.tmp && mv /tmp/install.sh.tmp /tmp/install.sh
     OLLAMA_VERSION=$OLLAMA_VERSION chmod +x /tmp/install.sh
     /tmp/install.sh
+	sudo systemctl stop ollama.service
 	sudo ln -s "$OLLAMA_DIR/bin/ollama" "$OLLAMA_DIR"
 fi
 
