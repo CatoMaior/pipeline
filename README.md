@@ -2,6 +2,7 @@
 
 This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation. Here is a flowchart of the pipeline:
 ![Pipeline Flowchart](pipeline.png)
+Piper models downloaded from https://huggingface.co/rhasspy/piper-voices.
 
 ## Usage instructions
 

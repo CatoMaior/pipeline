@@ -105,15 +105,15 @@ if should_run_part "dependencies"; then
     sudo apt install -y g++ cmake libportaudio2 wget curl acl zlib1g build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
 fi
 
-if should_run_part "piper"; then
-    print_message "Downloading Piper models..."
-    # Download Piper models
-    mkdir -p piper-models
-    wget -O piper-models/en_US-amy-medium.onnx \
-        https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
-    wget -O piper-models/en_US-amy-medium.onnx.json \
-        https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
-fi
+# if should_run_part "piper"; then
+#     print_message "Downloading Piper models..."
+#     # Download Piper models
+#     mkdir -p piper-models
+#     wget -O piper-models/en_US-amy-medium.onnx \
+#         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
+#     wget -O piper-models/en_US-amy-medium.onnx.json \
+#         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
+# fi
 
 if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
     print_message "Installing Ollama..."
