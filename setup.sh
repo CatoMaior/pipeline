@@ -109,9 +109,9 @@ if should_run_part "piper"; then
     print_message "Downloading Piper models..."
     # Download Piper models
     mkdir -p piper-models
-    wget --show-progress -O piper-models/en_US-amy-medium.onnx \
+    wget -O piper-models/en_US-amy-medium.onnx \
         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
-    wget --show-progress -O piper-models/en_US-amy-medium.onnx.json \
+    wget -O piper-models/en_US-amy-medium.onnx.json \
         https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
 fi
 

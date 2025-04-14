@@ -4,5 +4,4 @@ __pycache__/
 .pyenv/
 ollama/
 wav-outputs/
-piper-models/
 notes.txt
