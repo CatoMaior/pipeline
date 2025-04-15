@@ -2,12 +2,13 @@
 
 This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation. Here is a flowchart of the pipeline:
 ![Pipeline Flowchart](pipeline.png)
-Piper models downloaded from https://huggingface.co/rhasspy/piper-voices.
+
+Audio transcription is performed with [piper](https://github.com/rhasspy/piper), LLM interrogation is performed with [ollama](https://github.com/ollama/ollama), speech synthesis is performed with [moonshine](https://github.com/usefulsensors/moonshine)
 
 ## Usage instructions
 
 ### 1. Install dependencies
-To install this project you need `git`, `g++`, `cmake` and `acl`. On Debian-based distributions you can install them with:
+To install this project you need `git`. On Debian-based distributions you can install it with:
 ```
 sudo apt update
 sudo apt install git
