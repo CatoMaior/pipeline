@@ -141,6 +141,7 @@ if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
 	}' /tmp/install.sh > /tmp/install.sh.tmp && mv /tmp/install.sh.tmp /tmp/install.sh
 	OLLAMA_VERSION=$OLLAMA_VERSION chmod +x /tmp/install.sh
 	/tmp/install.sh
+	sudo setfacl -R -m u:ollama:rwx $OLLAMA_DIR
 	sudo systemctl stop ollama.service
 	sudo ln -s "$OLLAMA_DIR/bin/ollama" "$OLLAMA_DIR"
 fi
