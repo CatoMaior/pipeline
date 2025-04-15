@@ -56,7 +56,14 @@ update_ollama_service() {
 print_help() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
-    echo "  --run-parts=PARTS            For debugging purposes. Specify which parts to run (comma-separated). Options: dependencies, piper, ollama-install, ollama-config, uv, python."
+    echo "  --run-parts=PARTS            Specify which parts to run (comma-separated). Options:"
+    echo "                                dependencies    - Install system dependencies."
+    echo "                                piper           - Download Piper models."
+    echo "                                ollama-install  - Install the Ollama application."
+    echo "                                ollama-config   - Configure Ollama service and pull models."
+    echo "                                uv              - Install the UV tool."
+    echo "                                python-install  - Install Python using pyenv."
+    echo "                                python-config   - Configure the Python environment."
     echo "  --help                       Display this help message."
     exit 0
 }
@@ -145,13 +152,17 @@ if should_run_part "uv" && ! command -v uv &> /dev/null; then
 	sudo env UV_INSTALL_DIR="/usr/local/bin" /tmp/uv-installer.sh
 fi
 
-if should_run_part "python"; then
-    print_message "Setting up Python environment..."
+if should_run_part "python-install"; then
+    print_message "Installing Python..."
 	git clone https://github.com/pyenv/pyenv.git $PYENV_ROOT
 	cd $PYENV_ROOT
 	git checkout $PYENV_GIT_TAG
 	cd ..
 	PYENV_ROOT=$PYENV_ROOT $PYENV_EXECUTABLE install $PYTHON_VERSION
+fi
+
+if should_run_part "python-config"; then
+    print_message "Configuring Python environment..."
     mkdir -p "$UV_CACHE_DIR"
     uv venv --python=$PYTHON_EXE
     source .venv/bin/activate
