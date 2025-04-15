@@ -8,7 +8,6 @@ from silero_vad import VADIterator, load_silero_vad
 from sounddevice import InputStream
 import sys
 import os
-import wave
 import datetime
 
 import config
@@ -106,8 +105,7 @@ else:
 			logger.critical("WAV file not found: %s", wav_file_path)
 			sys.exit(1)
 		try:
-			with wave.open(wav_file_path, 'rb') as wav_file:
-				speech_segment = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16).astype(np.float32)
+			speech_segment = np.memmap(wav_file_path, dtype=np.int16, mode="r")
 		except Exception as e:
 			logger.critical("Failed to read WAV file: %s", e)
 			sys.exit(1)
