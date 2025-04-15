@@ -16,13 +16,13 @@ print_message() {
 }
 
 # Function to apply ACL recursively for every step in a path
-apply_acl_recursively() {
+allow_traversal() {
 	local path="$1"
 	local current_path=""
 	IFS='/' read -ra steps <<< "$path"
 	for step in "${steps[@]}"; do
 		current_path="$current_path/$step"
-		sudo setfacl -m u:ollama:rwx "$current_path"
+		sudo chmod +x "$current_path"
 	done
 }
 
@@ -31,8 +31,6 @@ update_ollama_service() {
 	local models_path="$1"
 	local service_file="/etc/systemd/system/ollama.service"
 	local temp_file="/tmp/ollama.service.tmp"
-
-	print_message "Updating Ollama service file with models path: $models_path"
 
 	if [ ! -f "$service_file" ]; then
 		echo "Error: $service_file does not exist."
@@ -54,9 +52,9 @@ update_ollama_service() {
 		sudo mv "$temp_file" "$service_file"
 	fi
 
-	apply_acl_recursively "$models_path"
+	allow_traversal "$models_path"
 	sudo mkdir -p /usr/share/ollama
-	apply_acl_recursively /usr/share/ollama
+	allow_traversal /usr/share/ollama
 	sudo systemctl daemon-reload
 	sudo systemctl start ollama.service
 
@@ -91,7 +89,6 @@ PYENV_ROOT="$SCRIPT_DIR/.pyenv"
 PYENV_EXECUTABLE="$PYENV_ROOT/libexec/pyenv"
 PYTHON_EXE="$PYENV_ROOT/versions/$PYTHON_VERSION/bin/python"
 
-# Parse command-line arguments
 RUN_PARTS=""
 for arg in "$@"; do
 	case $arg in
@@ -109,15 +106,12 @@ for arg in "$@"; do
 	esac
 done
 
-# Helper function to check if a part should be run
 should_run_part() {
 	[[ -z "$RUN_PARTS" || "$RUN_PARTS" == *"$1"* ]]
 }
 
-# Request sudo password to update Ollama service
 print_message "Requesting sudo access..."
 sudo -v
-# Keep sudo session alive
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 if should_run_part "dependencies"; then
@@ -151,7 +145,8 @@ if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
 	}' /tmp/install.sh > /tmp/install.sh.tmp && mv /tmp/install.sh.tmp /tmp/install.sh
 	OLLAMA_VERSION=$OLLAMA_VERSION chmod +x /tmp/install.sh
 	/tmp/install.sh
-	apply_acl_recursively $OLLAMA_DIR
+	allow_traversal $OLLAMA_DIR
+	sudo setfacl -R -m u:ollama:rwx $OLLAMA_DIR
 	sudo systemctl stop ollama.service
 	sudo ln -s "$OLLAMA_DIR/bin/ollama" "$OLLAMA_DIR"
 fi
@@ -182,13 +177,11 @@ fi
 
 if should_run_part "ollama-config"; then
 	mkdir -p "$OLLAMA_MODELS_DIR"
-	print_message "Setting OLLAMA_MODELS environment variable to $OLLAMA_MODELS_DIR"
+	print_message "Configuring Ollama service..."
 	update_ollama_service "$OLLAMA_MODELS_DIR"
 	sleep 1
 	print_message "Pulling Ollama model..."
 	ollama pull $(python config.py LLM_MODEL)
 fi
 
-echo -e "${GREEN}****************************************${NC}"
-echo -e "${GREEN}** Setup completed successfully.${NC}"
-echo -e "${GREEN}****************************************${NC}"
+print_message "Setup completed successfully"
