@@ -47,7 +47,12 @@ update_ollama_service() {
 	sudo setfacl -m u:ollama:rwx /usr/share/ollama
 	sudo systemctl daemon-reload
 	setfacl -m u:ollama:rwx ~
-	setfacl -m u:ollama:rwx $models_path
+	current_path=""
+	IFS='/' read -ra steps <<< "$models_path"
+	for step in "${steps[@]}"; do
+		current_path="$current_path/$step"
+		setfacl -m u:ollama:rwx "$current_path"
+	done
 	sudo systemctl start ollama.service
 
 }
