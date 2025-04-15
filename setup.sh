@@ -15,6 +15,17 @@ print_message() {
 	echo -e "${CYAN}****************************************${NC}"
 }
 
+# Function to apply ACL recursively for every step in a path
+apply_acl_recursively() {
+	local path="$1"
+	local current_path=""
+	IFS='/' read -ra steps <<< "$path"
+	for step in "${steps[@]}"; do
+		current_path="$current_path/$step"
+		sudo setfacl -m u:ollama:rwx "$current_path"
+	done
+}
+
 # Function to update systemd service
 update_ollama_service() {
 	local models_path="$1"
@@ -43,16 +54,10 @@ update_ollama_service() {
 		sudo mv "$temp_file" "$service_file"
 	fi
 
+	apply_acl_recursively "$models_path"
 	sudo mkdir -p /usr/share/ollama
-	sudo setfacl -m u:ollama:rwx /usr/share/ollama
+	apply_acl_recursively /usr/share/ollama
 	sudo systemctl daemon-reload
-	setfacl -m u:ollama:rwx ~
-	current_path=""
-	IFS='/' read -ra steps <<< "$models_path"
-	for step in "${steps[@]}"; do
-		current_path="$current_path/$step"
-		setfacl -m u:ollama:rwx "$current_path"
-	done
 	sudo systemctl start ollama.service
 
 }
@@ -146,7 +151,7 @@ if should_run_part "ollama-install" && ! command -v ollama &> /dev/null; then
 	}' /tmp/install.sh > /tmp/install.sh.tmp && mv /tmp/install.sh.tmp /tmp/install.sh
 	OLLAMA_VERSION=$OLLAMA_VERSION chmod +x /tmp/install.sh
 	/tmp/install.sh
-	sudo setfacl -R -m u:ollama:rwx $OLLAMA_DIR
+	apply_acl_recursively $OLLAMA_DIR
 	sudo systemctl stop ollama.service
 	sudo ln -s "$OLLAMA_DIR/bin/ollama" "$OLLAMA_DIR"
 fi
