@@ -28,26 +28,26 @@ update_ollama_service() {
         exit 1
     fi
 
-    sudo awk -v models_path="$models_path" '
-        /RestartSec=3/ {
-            print $0
-            print "Environment=\"OLLAMA_MODELS=" models_path "\""
-            next
-        }
-        { print $0 }
-    ' "$service_file" > "$temp_file"
+    if grep -q "Environment=\"OLLAMA_MODELS=" "$service_file"; then
+        echo "OLLAMA_MODELS is already set in $service_file. Skipping update."
+    else
+        sudo awk -v models_path="$models_path" '
+            /RestartSec=3/ {
+                print $0
+                print "Environment=\"OLLAMA_MODELS=" models_path "\""
+                next
+            }
+            { print $0 }
+        ' "$service_file" > "$temp_file"
 
-    sudo mv "$temp_file" "$service_file"
+        sudo mv "$temp_file" "$service_file"
+    fi
 
-	for BINDIR in /usr/local/bin /usr/bin /bin; do
-    	echo $PATH | grep -q $BINDIR && break || continue
-	done
-
-	sudo mkdir -p $BINDIR/ollama
-	sudo setfacl -m u:ollama:rwx $BINDIR/ollama
+    sudo mkdir -p /usr/share/ollama
+    sudo setfacl -m u:ollama:rwx /usr/share/ollama
     sudo systemctl daemon-reload
-	setfacl -m u:ollama:rwx ~
-	setfacl -m u:ollama:rwx $models_path
+    setfacl -m u:ollama:rwx ~
+    setfacl -m u:ollama:rwx $models_path
     sudo systemctl start ollama.service
 
 }
