@@ -1,4 +1,3 @@
-import wave
 from moonshine_onnx import MoonshineOnnxModel, load_tokenizer
 import config
 import numpy as np
