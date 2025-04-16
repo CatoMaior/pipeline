@@ -16,6 +16,13 @@ metrics = {
     "moonshine": {"ram_usages": [], "rtf_values": [], "process_func": get_synth_ram},
 }
 
+dry_run_file = "input.wav"
+if os.path.exists(dry_run_file):
+    print("Heating up the system...")
+    metrics["moonshine"]["process_func"]("Dry run text", dry_run_file)
+    metrics["piper"]["process_func"](dry_run_file)
+    print("Starting performance test...")
+
 for idx, text in enumerate(tqdm(texts, desc="Processing texts")):
     output_file = os.path.join(output_dir, f"text_{idx + 1}.wav")
 
