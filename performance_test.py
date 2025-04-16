@@ -16,12 +16,11 @@ metrics = {
     "moonshine": {"ram_usages": [], "rtf_values": [], "process_func": get_synth_ram},
 }
 
-dry_run_file = "input.wav"
-if os.path.exists(dry_run_file):
-    print("Heating up the system...")
-    metrics["moonshine"]["process_func"]("Dry run text", dry_run_file)
-    metrics["piper"]["process_func"](dry_run_file, f"{output_dir}/dry_run.wav")
-    print("Starting performance test...")
+dry_run_file = f"{output_dir}/dry_run.wav"
+print("Heating up the system...")
+metrics["moonshine"]["process_func"]("Dry run text", dry_run_file)
+metrics["piper"]["process_func"](dry_run_file)
+print("Starting performance test...")
 
 for idx, text in enumerate(tqdm(texts, desc="Processing texts")):
     output_file = os.path.join(output_dir, f"text_{idx + 1}.wav")
@@ -85,7 +84,8 @@ with open(log_file_path_txt, "w") as log_file:
 
 print(f"\nResults saved to: {log_file_path_txt}")
 
-latest_link_path = os.path.join(log_folder_path, "latest")
+latest_link_path = os.path.abspath(os.path.join(log_folder_path, "latest"))
 if os.path.islink(latest_link_path) or os.path.exists(latest_link_path):
     os.remove(latest_link_path)
-os.symlink(log_file_path_txt, latest_link_path)
+relative_log_file_path = os.path.relpath(log_file_path_txt, log_folder_path)
+os.symlink(relative_log_file_path, latest_link_path)
