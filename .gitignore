@@ -4,4 +4,5 @@ __pycache__/
 .pyenv/
 ollama/
 wav-outputs/
+performance_test_outputs/
 notes.txt
