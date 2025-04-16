@@ -1,9 +1,0 @@
-==============================
-PERFORMANCE RECAP
-==============================
-System Information:
-  OS: Linux 6.6.51+rpt-rpi-2712 (#1 SMP PREEMPT Debian 1:6.6.51-1+rpt3 (2024-10-08))
-  CPU: 
-  Total Memory: 7.86 GB
-Average Synthesis Real-Time Factor (RTF): 0.153
-Average Transcription Real-Time Factor (RTF): 0.119
