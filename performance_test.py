@@ -85,4 +85,7 @@ with open(log_file_path_txt, "w") as log_file:
 
 print(f"\nResults saved to: {log_file_path_txt}")
 
-
+latest_link_path = os.path.join(log_folder_path, "latest")
+if os.path.islink(latest_link_path) or os.path.exists(latest_link_path):
+    os.remove(latest_link_path)
+os.symlink(log_file_path_txt, latest_link_path)
