@@ -1,0 +1,21 @@
+Performance Test Results:
+
+Piper:
+  RAM Usage (MB):
+    Minimum: 62.51 MB
+    Maximum: 81.03 MB
+    Average: 70.46 MB
+  Real-Time Factor (RTF):
+    Minimum: 0.109
+    Maximum: 0.118
+    Average: 0.113
+
+Moonshine:
+  RAM Usage (MB):
+    Minimum: 140.36 MB
+    Maximum: 194.16 MB
+    Average: 178.27 MB
+  Real-Time Factor (RTF):
+    Minimum: 0.073
+    Maximum: 0.09
+    Average: 0.081
