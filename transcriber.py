@@ -49,6 +49,19 @@ class Transcriber:
 				self.logger.error("Failed to read audio file for transcription: %s", e)
 			return "[file read error]"
 
+def measure_ram(file_path: str) -> dict:
+	"""
+	Measure RAM usage while transcribing an audio file.
+	:param file_path: Path to the audio file to transcribe.
+	:return: Dictionary with transcription and RAM usage in MB.
+	"""
+	transcriber = Transcriber(return_ram_usage=True)
+	transcription, ram = transcriber.transcribe_from_file(file_path)
+	return {
+		"transcription": transcription,
+		"ram_usage_mb": ram
+	}
+
 if __name__ == "__main__":
 	import argparse
 

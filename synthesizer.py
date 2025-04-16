@@ -52,6 +52,20 @@ class Synthesizer:
 		with wave.open(file_path, "rb") as wav_file:
 			return wav_file.getnframes() / wav_file.getframerate()
 
+def measure_ram(text: str, output_file: str) -> dict:
+	"""
+	Measure RAM usage while synthesizing speech from text.
+	:param text: Text to synthesize.
+	:param output_file: Path to save the synthesized audio file.
+	:return: Dictionary with output file path and RAM usage in MB.
+	"""
+	synthesizer = Synthesizer(PIPER_MODEL_PATH)
+	ram_usage = synthesizer.save_output(text, output_file)
+	return {
+		"output_file": output_file,
+		"ram_usage_mb": ram_usage
+	}
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Synthesize speech from text using PiperVoice.")
 	parser.add_argument("text", type=str, help="Text to synthesize.")
