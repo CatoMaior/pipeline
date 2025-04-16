@@ -221,7 +221,7 @@ llm_output = response['message']['content']
 
 logger.info("LLM output: \n%s", llm_output)
 
-synthesizer = Synthesizer(config.PIPER_MODEL_PATH, config.OUTPUT_DIR)
+synthesizer = Synthesizer(config.PIPER_MODEL_PATH)
 
 output_choice = input(
 	"\n==============================\n"
