@@ -6,8 +6,8 @@ import sounddevice as sd
 from piper.voice import PiperVoice
 import psutil
 import argparse
-import datetime
-from config import PIPER_MODEL_PATH, OUTPUT_DIR
+from config import PIPER_MODEL_PATH
+import time
 
 class Synthesizer:
 	def __init__(self, model_path: str):
@@ -18,19 +18,29 @@ class Synthesizer:
 
 	def save_output(self, text: str, filename: str):
 		try:
-			# Ensure the destination folder exists
 			os.makedirs(os.path.dirname(filename), exist_ok=True)
 
 			process = psutil.Process()
 			before_ram = process.memory_info().rss / (1024 * 1024)
 
+			start_time = time.time()
+
 			with wave.open(filename, "w") as wav_file:
 				self.voice.synthesize(text, wav_file)
+
+			end_time = time.time()
 
 			after_ram = process.memory_info().rss / (1024 * 1024)
 			ram_usage = after_ram - before_ram
 
-			return round(ram_usage, 2)
+			audio_duration = self.calculate_audio_duration(filename)
+			synthesis_time = end_time - start_time
+			rtf = synthesis_time / audio_duration if audio_duration > 0 else float('inf')
+
+			return {
+				"ram_usage_mb": round(ram_usage, 2),
+				"real_time_factor": round(rtf, 3)
+			}
 		except Exception as e:
 			if hasattr(self, 'logger') and self.logger:
 				self.logger.error("Synthesis failed: %s", e)
@@ -52,7 +62,7 @@ class Synthesizer:
 		with wave.open(file_path, "rb") as wav_file:
 			return wav_file.getnframes() / wav_file.getframerate()
 
-def measure_ram(text: str, output_file: str) -> dict:
+def get_stats(text: str, output_file: str) -> dict:
 	"""
 	Measure RAM usage while synthesizing speech from text.
 	:param text: Text to synthesize.
@@ -60,11 +70,9 @@ def measure_ram(text: str, output_file: str) -> dict:
 	:return: Dictionary with output file path and RAM usage in MB.
 	"""
 	synthesizer = Synthesizer(PIPER_MODEL_PATH)
-	ram_usage = synthesizer.save_output(text, output_file)
-	return {
-		"output_file": output_file,
-		"ram_usage_mb": ram_usage
-	}
+	stats = synthesizer.save_output(text, output_file)
+	stats["output_file"] = output_file,
+	return stats
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Synthesize speech from text using PiperVoice.")
@@ -72,12 +80,5 @@ if __name__ == "__main__":
 	parser.add_argument("-o", "--output_file", type=str, help="Path to save the synthesized audio file.", default=None)
 	args = parser.parse_args()
 
-	synthesizer = Synthesizer(PIPER_MODEL_PATH)
-	output_file = args.output_file
-
-	ram_usage = synthesizer.save_output(args.text, output_file)
-	output = {
-		"output_file": output_file,
-		"ram_usage_mb": ram_usage
-	}
-	print(json.dumps(output, indent=4))
+	stats = get_stats(args.text, args.output_file)
+	print(json.dumps(stats, indent=4))

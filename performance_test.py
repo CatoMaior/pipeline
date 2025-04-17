@@ -1,5 +1,5 @@
-from synthesizer import measure_ram as get_synth_ram
-from transcriber import measure_ram as get_trans_ram
+from synthesizer import get_stats as get_synth_stats
+from transcriber import get_stats as get_trans_stats
 from evaluation_texts import texts
 import os
 import time
@@ -12,31 +12,26 @@ output_dir = "./performance_test_outputs"
 os.makedirs(output_dir, exist_ok=True)
 
 metrics = {
-    "piper": {"ram_usages": [], "rtf_values": [], "process_func": get_trans_ram},
-    "moonshine": {"ram_usages": [], "rtf_values": [], "process_func": get_synth_ram},
+    "transcription": {"ram_usages": [], "rtf_values": [], "process_func": get_trans_stats},
+    "synthesis": {"ram_usages": [], "rtf_values": [], "process_func": get_synth_stats},
 }
 
 dry_run_file = f"{output_dir}/dry_run.wav"
 print("Heating up the system...")
-metrics["moonshine"]["process_func"]("Dry run text", dry_run_file)
-metrics["piper"]["process_func"](dry_run_file)
+metrics["synthesis"]["process_func"]("Dry run text", dry_run_file)
+metrics["transcription"]["process_func"](dry_run_file)
 print("Starting performance test...")
 
 for idx, text in enumerate(tqdm(texts, desc="Processing texts")):
     output_file = os.path.join(output_dir, f"text_{idx + 1}.wav")
 
-    start_time = time.time()
-    synth_result = metrics["moonshine"]["process_func"](text, output_file)
-    synth_duration = time.time() - start_time
-    audio_duration = librosa.get_duration(path=output_file)
-    metrics["moonshine"]["rtf_values"].append(synth_duration / audio_duration)
-    metrics["moonshine"]["ram_usages"].append(synth_result["ram_usage_mb"])
+    synth_result = metrics["synthesis"]["process_func"](text, output_file)
+    metrics["synthesis"]["rtf_values"].append(synth_result["real_time_factor"])
+    metrics["synthesis"]["ram_usages"].append(synth_result["ram_usage_mb"])
 
-    start_time = time.time()
-    trans_result = metrics["piper"]["process_func"](output_file)
-    trans_duration = time.time() - start_time
-    metrics["piper"]["rtf_values"].append(trans_duration / audio_duration)
-    metrics["piper"]["ram_usages"].append(trans_result["ram_usage_mb"])
+    trans_result = metrics["transcription"]["process_func"](output_file)
+    metrics["transcription"]["rtf_values"].append(trans_result["real_time_factor"])
+    metrics["transcription"]["ram_usages"].append(trans_result["ram_usage_mb"])
 
 results = {}
 for key, data in metrics.items():
@@ -67,7 +62,7 @@ log_file_path = os.path.join(log_folder_path, log_file_name)
 results_string = "Performance Test Results:\n"
 for key, data in results.items():
     results_string += f"\n{key.capitalize()}:\n"
-    results_string += "  RAM Usage (MB):\n"
+    results_string += "  RAM Usage:\n"
     results_string += f"    Minimum: {data['ram_usage']['min_mb']} MB\n"
     results_string += f"    Maximum: {data['ram_usage']['max_mb']} MB\n"
     results_string += f"    Average: {data['ram_usage']['avg_mb']} MB\n"
@@ -75,6 +70,9 @@ for key, data in results.items():
     results_string += f"    Minimum: {data['rtf']['min']}\n"
     results_string += f"    Maximum: {data['rtf']['max']}\n"
     results_string += f"    Average: {data['rtf']['avg']}\n"
+
+results_string = results_string.replace("Transcription:", "Transcription (piper):")
+results_string = results_string.replace("Synthesis:", "Synthesis (moonshine):")
 
 print(results_string)
 
