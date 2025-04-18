@@ -1,9 +1,9 @@
-import logging
 import sys
 from datetime import datetime
 
 from core.config import Config
 from core.config_utils import log_config
+from core.log_utils import setup_logging
 from .ui_manager import UIManager
 from .audio_handler import AudioHandler
 from .transcriber_handler import TranscriberHandler
@@ -15,11 +15,8 @@ class Pipeline:
 
     def __init__(self):
         """Initialize pipeline components and set up logging."""
-        logging.basicConfig(
-            level=getattr(logging, Config.LOGGING.LEVEL.upper(), logging.INFO),
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
+        logger = setup_logging(log_to_console=False)
+        self.logger = logger.getChild(__name__)
         self.logger.debug("Starting pipeline.")
 
         log_config(self.logger)
@@ -29,6 +26,8 @@ class Pipeline:
         self.transcriber = TranscriberHandler(self.logger)
         self.llm = LLMHandler(self.logger)
         self.synthesis = SynthesisHandler(self.logger)
+
+        print("Pipeline initialized. Logs will be saved to 'logs/latest.log'")
 
     def run(self):
         """Execute the entire pipeline."""
@@ -69,6 +68,7 @@ class Pipeline:
                 return None
             transcribed = self.transcriber.transcribe(speech_segment)
             self.logger.info(f"Transcription: {transcribed}")
+            print(f"\nTranscription:\n{transcribed}")
             return transcribed
 
     def _process_with_llm(self, transcribed_text):
@@ -88,6 +88,7 @@ class Pipeline:
         if response and 'message' in response and 'content' in response['message']:
             llm_output = response['message']['content']
             self.logger.info(f"LLM output: \n{llm_output}")
+            print(f"LLM output: \n{llm_output}")
             return llm_output
 
         return None

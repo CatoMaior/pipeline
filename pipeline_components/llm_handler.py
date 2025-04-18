@@ -34,7 +34,7 @@ class LLMHandler:
         if model_name in available_models:
             return True
 
-        self.logger.info(f"Model {model_name} not found in the local model list. Pulling from repository.")
+        self.logger.debug(f"Model {model_name} not found in the local model list. Pulling from repository.")
         try:
             ret = os.system(f"ollama pull {model_name}")
             if ret != 0:

@@ -71,7 +71,7 @@ class AudioHandler:
             end_idx = None
 
             with stream:
-                self.logger.info("Awaiting voice input.")
+                self.logger.debug("Awaiting voice input.")
                 while True:
                     chunk = q.get()
                     if chunk is None or len(chunk) == 0:
@@ -87,7 +87,7 @@ class AudioHandler:
                         if "start" in speech_dict and not recording:
                             recording = True
                             start_idx = len(speech_buffer) - len(chunk)
-                            self.logger.info("Voice detected. Recording started.")
+                            self.logger.debug("Voice detected. Recording started.")
 
                         elif "end" in speech_dict and recording:
                             end_idx = len(speech_buffer)
@@ -96,7 +96,7 @@ class AudioHandler:
 
                     if recording and len(speech_buffer) / Config.AUDIO.SAMPLING_RATE > Config.AUDIO.MAX_SPEECH_SECS:
                         end_idx = len(speech_buffer)
-                        self.logger.info("Maximum recording duration reached. Beginning transcription.")
+                        self.logger.debug("Maximum recording duration reached. Beginning transcription.")
                         break
 
             # Process the recorded audio
@@ -115,7 +115,7 @@ class AudioHandler:
     def play_audio(self, audio_data):
         """Play audio data."""
         try:
-            self.logger.info("Playing back recorded audio.")
+            self.logger.debug("Playing back recorded audio.")
             sd.play(audio_data, samplerate=Config.AUDIO.SAMPLING_RATE)
             sd.wait()
             return True

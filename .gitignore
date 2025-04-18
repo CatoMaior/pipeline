@@ -6,3 +6,4 @@ ollama/
 wav_outputs/
 wav_performance_tests/
 notes.txt
+logs/
