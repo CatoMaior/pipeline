@@ -3,7 +3,6 @@ import os
 import json
 import numpy as np
 import sounddevice as sd
-from piper.voice import PiperVoice
 import psutil
 import argparse
 import time
@@ -11,12 +10,34 @@ from .config import Config
 
 class Synthesizer:
 	def __init__(self, model_path: str):
-		self.voice = PiperVoice.load(model_path)
-		with open(f"{model_path}.json", "r") as model_config_file:
-			piper_config = json.load(model_config_file)
-			self.sample_rate = piper_config["audio"]["sample_rate"]
+		self.model_path = model_path
+		self.voice = None
+		self.sample_rate = 16000  # Default sample rate
+		self._initialized = False
+
+	def _initialize_if_needed(self):
+		"""Initialize the PiperVoice model if it hasn't been initialized yet."""
+		if self._initialized:
+			return True
+
+		try:
+			# Only import Piper when we need it
+			from piper.voice import PiperVoice
+			self.voice = PiperVoice.load(self.model_path)
+			with open(f"{self.model_path}.json", "r") as model_config_file:
+				piper_config = json.load(model_config_file)
+				self.sample_rate = piper_config["audio"]["sample_rate"]
+			self._initialized = True
+			return True
+		except Exception as e:
+			if hasattr(self, 'logger') and self.logger:
+				self.logger.error(f"Error initializing Piper: {e}")
+			return False
 
 	def save_output(self, text: str, filename: str):
+		if not self._initialize_if_needed():
+			return {"error": "Failed to initialize Piper", "output_file": filename}
+
 		try:
 			os.makedirs(os.path.dirname(filename), exist_ok=True)
 
@@ -47,16 +68,31 @@ class Synthesizer:
 			raise
 
 	def play_output(self, filename: str):
-		with wave.open(filename, "rb") as wav_file:
-			audio_data = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16)
-			sd.play(audio_data, samplerate=wav_file.getframerate())
-			sd.wait()
+		try:
+			with wave.open(filename, "rb") as wav_file:
+				audio_data = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16)
+				sd.play(audio_data, samplerate=wav_file.getframerate())
+				sd.wait()
+		except Exception as e:
+			if hasattr(self, 'logger') and self.logger:
+				self.logger.error(f"Error playing audio: {e}")
 
 	def play_raw_output(self, text: str):
-		raw_audio = b''.join(self.voice.synthesize_stream_raw(text))
-		audio = np.frombuffer(raw_audio, dtype=np.int16)
-		sd.play(audio, samplerate=self.sample_rate)
-		sd.wait()
+		if not self._initialize_if_needed():
+			if hasattr(self, 'logger') and self.logger:
+				self.logger.error("Failed to initialize Piper")
+			return False
+
+		try:
+			raw_audio = b''.join(self.voice.synthesize_stream_raw(text))
+			audio = np.frombuffer(raw_audio, dtype=np.int16)
+			sd.play(audio, samplerate=self.sample_rate)
+			sd.wait()
+			return True
+		except Exception as e:
+			if hasattr(self, 'logger') and self.logger:
+				self.logger.error(f"Error in raw audio playback: {e}")
+			return False
 
 	def calculate_audio_duration(self, file_path: str) -> float:
 		with wave.open(file_path, "rb") as wav_file:
@@ -69,10 +105,13 @@ def get_stats(text: str, output_file: str) -> dict:
 	:param output_file: Path to save the synthesized audio file.
 	:return: Dictionary with output file path and RAM usage in MB.
 	"""
-	synthesizer = Synthesizer(Config.SYNTHESIS.PIPER_MODEL_PATH)
-	stats = synthesizer.save_output(text, output_file)
-	stats["output_file"] = output_file,
-	return stats
+	try:
+		synthesizer = Synthesizer(Config.SYNTHESIS.PIPER_MODEL_PATH)
+		stats = synthesizer.save_output(text, output_file)
+		stats["output_file"] = output_file,
+		return stats
+	except Exception as e:
+		return {"error": str(e), "output_file": output_file}
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Synthesize speech from text using PiperVoice.")

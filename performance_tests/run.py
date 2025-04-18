@@ -21,13 +21,13 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
 
     disabled_components = []
     if not run_transcription:
-        disabled_components.append("transcription")
+        disabled_components.append("Transcription (moonshine)")
     if not run_synthesis:
-        disabled_components.append("synthesis")
+        disabled_components.append("Synthesis (piper)")
     if not run_llm:
-        disabled_components.append("llm_inference")
+        disabled_components.append(f"LLM inference ({Config.LLM.MODEL})")
 
-    output_dir = "./performance_test_outputs"
+    output_dir = "./wav_performance_tests"
     os.makedirs(output_dir, exist_ok=True)
 
     if not test_runners:
@@ -42,16 +42,13 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
         synthesis_test = next((t for t in test_runners if t.name == "synthesis"), None)
         if synthesis_test:
             synthesis_test.run_test("Dry run text", dry_run_file, collect_metrics=False)
+    if not run_synthesis and run_transcription:
+        if not os.path.exists(dry_run_file):
+            print(f"Warning: Dry run file {dry_run_file} not found. Transcription dry run may fail.")
 
     if run_transcription:
         transcription_test = next((t for t in test_runners if t.name == "transcription"), None)
         if transcription_test:
-            if not run_synthesis or not os.path.exists(dry_run_file):
-                from core.synthesizer import Synthesizer
-                synth = Synthesizer(Config.SYNTHESIS.PIPER_MODEL_PATH)
-                os.makedirs(os.path.dirname(dry_run_file), exist_ok=True)
-                synth.save_output("Dry run text for transcription only", dry_run_file)
-
             transcription_test.run_test(dry_run_file, collect_metrics=False)
 
     if run_llm:
@@ -69,7 +66,11 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
             if synthesis_test:
                 synthesis_test.run_test(text, output_file)
 
-        if run_transcription and run_synthesis:
+        if run_transcription:
+            if not run_synthesis and not os.path.exists(output_file):
+                print(f"Warning: File {output_file} not found. Skipping transcription for this file.")
+                continue
+
             transcription_test = next((t for t in test_runners if t.name == "transcription"), None)
             if transcription_test:
                 transcription_test.run_test(output_file)

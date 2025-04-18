@@ -20,7 +20,28 @@ def format_results(test_results, test_runners, disabled_components=None):
     if disabled_components and len(disabled_components) > 0:
         results_string += "\nDisabled Components:\n"
         for component in disabled_components:
-            results_string += f"  - {component.replace('_', ' ').title()}\n"
+            results_string += f"  - {component.replace('_', ' ').capitalize()}\n"
+
+    def format_metric(metric_name, stats):
+        metric_info = {
+            "ram_usage": ("RAM Usage", "MB"),
+            "rtf": ("Real-Time Factor (RTF)", ""),
+            "eval_rate": ("Evaluation Rate", "token/s")
+        }
+
+        if metric_name not in metric_info:
+            return ""
+
+        label, unit = metric_info[metric_name]
+        formatted = f"  {label}:\n"
+
+        unit_suffix = f" {unit}" if unit else ""
+
+        formatted += f"    Minimum: {stats['min']}{unit_suffix}\n"
+        formatted += f"    Maximum: {stats['max']}{unit_suffix}\n"
+        formatted += f"    Average: {stats['avg']}{unit_suffix}\n"
+
+        return formatted
 
     for test_name, result in test_results.items():
         test = next((t for t in test_runners if t.name == test_name), None)
@@ -30,21 +51,7 @@ def format_results(test_results, test_runners, disabled_components=None):
         results_string += f"\n{test.display_name}:\n"
 
         for metric_name, stats in result.items():
-            if metric_name == "ram_usage":
-                results_string += f"  RAM Usage:\n"
-                results_string += f"    Minimum: {stats['min']} MB\n"
-                results_string += f"    Maximum: {stats['max']} MB\n"
-                results_string += f"    Average: {stats['avg']} MB\n"
-            elif metric_name == "rtf":
-                results_string += f"  Real-Time Factor (RTF):\n"
-                results_string += f"    Minimum: {stats['min']}\n"
-                results_string += f"    Maximum: {stats['max']}\n"
-                results_string += f"    Average: {stats['avg']}\n"
-            elif metric_name == "eval_rate":
-                results_string += f"  Evaluation Rate:\n"
-                results_string += f"    Minimum: {stats['min']} token/s\n"
-                results_string += f"    Maximum: {stats['max']} token/s\n"
-                results_string += f"    Average: {stats['avg']} token/s\n"
+            results_string += format_metric(metric_name, stats)
 
     return results_string
 

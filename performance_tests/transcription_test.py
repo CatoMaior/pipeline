@@ -3,7 +3,7 @@ from core.transcriber import get_stats as get_trans_stats
 
 class TranscriptionTest(PerformanceTest):
     def __init__(self):
-        super().__init__("transcription", "Transcription (piper)")
+        super().__init__("transcription", "Transcription (moonshine)")
         self.metrics["rtf_values"] = []
 
     def run_test(self, audio_file, collect_metrics=True):

@@ -3,7 +3,7 @@ from core.synthesizer import get_stats as get_synth_stats
 
 class SynthesisTest(PerformanceTest):
     def __init__(self):
-        super().__init__("synthesis", "Synthesis (moonshine)")
+        super().__init__("synthesis", "Synthesis (piper)")
         self.metrics["rtf_values"] = []
 
     def run_test(self, text, output_file, collect_metrics=True):
