@@ -6,16 +6,14 @@ trap 'echo "Error: Command failed at line $LINENO."' ERR
 # Define colors
 GREEN='\033[1;32m' # Bold Green
 CYAN='\033[1;36m'  # Bold Cyan
-NC='\033[0m'       # No Color
+DEFAULT='\033[0m'       # No Color
 
-# Function to print a highlighted message
 print_message() {
-	echo -e "${CYAN}****************************************${NC}"
-	echo -e "${CYAN}** $1${NC}"
-	echo -e "${CYAN}****************************************${NC}"
+	echo -e "${CYAN}****************************************${DEFAULT}"
+	echo -e "${CYAN}** $1${DEFAULT}"
+	echo -e "${CYAN}****************************************${DEFAULT}"
 }
 
-# Function to apply ACL recursively for every step in a path
 allow_traversal() {
 	local path="$1"
 	local current_path=""
@@ -26,7 +24,6 @@ allow_traversal() {
 	done
 }
 
-# Function to update systemd service
 update_ollama_service() {
 	local models_path="$1"
 	local service_file="/etc/systemd/system/ollama.service"
@@ -60,7 +57,6 @@ update_ollama_service() {
 
 }
 
-# Function to display help
 print_help() {
 	echo "Usage: $0 [OPTIONS]"
 	echo "Options:"
@@ -181,10 +177,9 @@ if should_run_part "ollama-config"; then
 	update_ollama_service "$OLLAMA_MODELS_DIR"
 	sleep 1
 	print_message "Pulling Ollama model..."
-	# Updated to use the new config class structure
 	ollama pull $(python -c "from core.config import Config; print(Config.LLM.MODEL)")
 fi
 
-git update-index --assume-unchanged wav_performance_tests/
+git update-index --assume-unchanged wav_performance_tests/*
 
 print_message "Setup completed successfully"
