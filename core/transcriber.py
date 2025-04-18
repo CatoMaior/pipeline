@@ -1,16 +1,17 @@
 import wave
 from moonshine_onnx import MoonshineOnnxModel, load_tokenizer
-import config
-import numpy as np
 import sys
+import numpy as np
 import psutil
 import json
 import time
+from .config import Config
 
 class Transcriber:
-	def __init__(self, logger=None, model_name=config.MOONSHINE_MODEL, return_stats=False):
+	def __init__(self, logger=None, model_name=None, return_stats=False):
 		try:
 			self.audio_duration = -1
+			model_name = model_name or Config.TRANSCRIPTION.MOONSHINE_MODEL
 			self.model = MoonshineOnnxModel(model_name=model_name)
 			self.tokenizer = load_tokenizer()
 		except Exception as e:

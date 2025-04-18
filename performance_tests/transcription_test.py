@@ -1,5 +1,5 @@
 from .base_test import PerformanceTest
-from transcriber import get_stats as get_trans_stats
+from core.transcriber import get_stats as get_trans_stats
 
 class TranscriptionTest(PerformanceTest):
     def __init__(self):

@@ -1,9 +1,7 @@
 # Pipeline Project
 
-This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation. Here is a flowchart of the pipeline:
+This repository contains an interactive pipeline for voice transcription, local LLM interrogation, and output speech generation. Audio transcription is performed with [moonshine](https://github.com/usefulsensors/moonshine), LLM interrogation is performed with [ollama](https://github.com/ollama/ollama), speech synthesis is performed with [piper](https://github.com/rhasspy/piper). Here is a flowchart of the pipeline:
 ![Pipeline Flowchart](pipeline.png)
-
-Audio transcription is performed with [piper](https://github.com/rhasspy/piper), LLM interrogation is performed with [ollama](https://github.com/ollama/ollama), speech synthesis is performed with [moonshine](https://github.com/usefulsensors/moonshine)
 
 ## Usage instructions
 
@@ -36,12 +34,25 @@ Start the main pipeline script:
 ```
 python pipeline.py
 ```
-You can customize the pipeline by modifying parameters in the `config.py` file. All parameters are thoroughly documented within the file.
+
+You can customize the pipeline by modifying parameters in the `core/config.py` file. All parameters are thoroughly documented within the file.
 
 ## Performance Tests
 
-After activating the virtual environment as in the previous section, run `performance_tests.py` to evaluate the pipeline components' performance:
+The project includes a comprehensive performance testing framework to evaluate each pipeline component. After activating the virtual environment as in the section above, you can run it:
 ```
-python performance_tests.py
+python performance_test.py [options]
 ```
-The results are logged to the console and saved in the `performance-logs` directory. The log file is named with the format `performance_log_<hostname>_<timestamp>.txt`, where `<hostname>` is the machine's hostname and `<timestamp>` is the current date and time.
+
+### Command-line options:
+
+- `--no-transcription`: Skip transcription performance tests
+- `--no-synthesis`: Skip synthesis performance tests  
+- `--no-llm`: Skip LLM inference performance tests
+
+For example, to test only the LLM component:
+```
+python performance_test.py --no-transcription --no-synthesis
+```
+
+The results are logged to the console and saved in the `performance_logs` directory in a directory with the hostname of the machine running the tests, with a symlink called `latest` pointing to the most recent results.

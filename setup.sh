@@ -122,13 +122,13 @@ fi
 
 if should_run_part "piper"; then
 	print_message "Downloading Piper models..."
-	mkdir -p piper-models
-	if [ ! -f "piper-models/en_US-amy-medium.onnx" ]; then
-		wget -O piper-models/en_US-amy-medium.onnx \
+	mkdir -p piper_models
+	if [ ! -f "piper_models/en_US-amy-medium.onnx" ]; then
+		wget -O piper_models/en_US-amy-medium.onnx \
 			https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx?download=true
 	fi
-	if [ ! -f "piper-models/en_US-amy-medium.onnx.json" ]; then
-		wget -O piper-models/en_US-amy-medium.onnx.json \
+	if [ ! -f "piper_models/en_US-amy-medium.onnx.json" ]; then
+		wget -O piper_models/en_US-amy-medium.onnx.json \
 			https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json?download=true
 	fi
 fi
@@ -181,7 +181,8 @@ if should_run_part "ollama-config"; then
 	update_ollama_service "$OLLAMA_MODELS_DIR"
 	sleep 1
 	print_message "Pulling Ollama model..."
-	ollama pull $(python config.py LLM_MODEL)
+	# Updated to use the new config class structure
+	ollama pull $(python -c "from core.config import Config; print(Config.LLM.MODEL)")
 fi
 
 print_message "Setup completed successfully"

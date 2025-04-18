@@ -32,12 +32,28 @@ class PerformanceTest(ABC):
 
     def get_results(self):
         """Calculate statistics for the collected metrics"""
+        precision_map = {
+            "rtf": 3,
+            "ram_usage": 2,
+            "eval_rate": 2
+        }
+
         results = {
-            "ram_usage": calculate_stats(self.metrics["ram_usages"])
+            "ram_usage": calculate_stats(self.metrics["ram_usages"],
+                                        precision_map.get("ram_usage", 2))
         }
 
         for metric_name, values in self.metrics.items():
             if metric_name != "ram_usages" and values:
-                results[metric_name.rstrip("s")] = calculate_stats(values)
+                if metric_name == "rtf_values":
+                    base_name = "rtf"
+                elif metric_name == "eval_rates":
+                    base_name = "eval_rate"
+                else:
+                    base_name = metric_name.rstrip("s")
+
+                precision = precision_map.get(base_name, 2)
+
+                results[base_name] = calculate_stats(values, precision)
 
         return results

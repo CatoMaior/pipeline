@@ -1,5 +1,5 @@
 from .base_test import PerformanceTest
-from synthesizer import get_stats as get_synth_stats
+from core.synthesizer import get_stats as get_synth_stats
 
 class SynthesisTest(PerformanceTest):
     def __init__(self):

@@ -2,20 +2,25 @@ import os
 import platform
 from datetime import datetime
 
-def calculate_stats(values):
+def calculate_stats(values, precision=2):
     """Calculate min, max, and average from a list of values"""
     if not values:
         return {"min": 0, "max": 0, "avg": 0}
 
     return {
-        "min": round(min(values), 3),
-        "max": round(max(values), 3),
-        "avg": round(sum(values) / len(values), 3)
+        "min": round(min(values), precision),
+        "max": round(max(values), precision),
+        "avg": round(sum(values) / len(values), precision)
     }
 
-def format_results(test_results, test_runners):
+def format_results(test_results, test_runners, disabled_components=None):
     """Format the results as a string"""
     results_string = "Performance Test Results:\n"
+
+    if disabled_components and len(disabled_components) > 0:
+        results_string += "\nDisabled Components:\n"
+        for component in disabled_components:
+            results_string += f"  - {component.replace('_', ' ').title()}\n"
 
     for test_name, result in test_results.items():
         test = next((t for t in test_runners if t.name == test_name), None)
@@ -45,7 +50,7 @@ def format_results(test_results, test_runners):
 
 def save_results(results_string):
     """Save results to a log file and create a symlink to the latest results"""
-    logs_dir = "./performance-logs"
+    logs_dir = "./performance_logs"
     os.makedirs(logs_dir, exist_ok=True)
 
     log_folder_name = platform.node()

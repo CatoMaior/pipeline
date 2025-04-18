@@ -6,8 +6,8 @@ import sounddevice as sd
 from piper.voice import PiperVoice
 import psutil
 import argparse
-from config import PIPER_MODEL_PATH
 import time
+from .config import Config
 
 class Synthesizer:
 	def __init__(self, model_path: str):
@@ -69,7 +69,7 @@ def get_stats(text: str, output_file: str) -> dict:
 	:param output_file: Path to save the synthesized audio file.
 	:return: Dictionary with output file path and RAM usage in MB.
 	"""
-	synthesizer = Synthesizer(PIPER_MODEL_PATH)
+	synthesizer = Synthesizer(Config.SYNTHESIS.PIPER_MODEL_PATH)
 	stats = synthesizer.save_output(text, output_file)
 	stats["output_file"] = output_file,
 	return stats
