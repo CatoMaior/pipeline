@@ -185,4 +185,6 @@ if should_run_part "ollama-config"; then
 	ollama pull $(python -c "from core.config import Config; print(Config.LLM.MODEL)")
 fi
 
+git update-index --assume-unchanged wav_performance_tests/
+
 print_message "Setup completed successfully"
