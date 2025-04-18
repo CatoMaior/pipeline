@@ -1,0 +1,15 @@
+Performance Test Results:
+
+Disabled Components:
+  - Transcription
+  - Synthesis
+
+LLM inference (granite3.2:2b):
+  RAM Usage:
+    Minimum: 2180.74 MB
+    Maximum: 2183.11 MB
+    Average: 2181.89 MB
+  Evaluation Rate:
+    Minimum: 18.45 token/s
+    Maximum: 18.56 token/s
+    Average: 18.48 token/s
