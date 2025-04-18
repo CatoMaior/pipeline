@@ -57,3 +57,5 @@ python performance_test.py --no-transcription --no-synthesis
 ```
 
 The results are logged to the console and saved in the `performance_logs` directory in a directory with the hostname of the machine running the tests, with a symlink called `latest` pointing to the most recent results.
+
+Synthesis tests are performed on selected texts that generate around 20 seconds of speech. Transcription tests are performed on audio files about 20 second long. LLM tests use prompts designed to elicit brief responses, optimizing test efficiency by reducing inference time.
