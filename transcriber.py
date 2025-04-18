@@ -10,6 +10,7 @@ import time
 class Transcriber:
 	def __init__(self, logger=None, model_name=config.MOONSHINE_MODEL, return_stats=False):
 		try:
+			self.audio_duration = -1
 			self.model = MoonshineOnnxModel(model_name=model_name)
 			self.tokenizer = load_tokenizer()
 		except Exception as e:
@@ -39,7 +40,7 @@ class Transcriber:
 			ram_usage = after_ram - before_ram
 
 			transcription_time = end_time - start_time
-			rtf = transcription_time / self.audio_duration if self.audio_duration > 0 else float('inf')
+			rtf = transcription_time / self.audio_duration if self.audio_duration > 0 else None
 
 			if self.return_stats:
 				return transcription, round(ram_usage, 2), round(rtf, 3)
