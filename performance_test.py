@@ -19,5 +19,5 @@ if __name__ == "__main__":
         run_transcription=not args.no_transcription,
         run_synthesis=not args.no_synthesis,
         run_llm=not args.no_llm,
-        save_results=args.save
+        should_save_results=args.save
     )
