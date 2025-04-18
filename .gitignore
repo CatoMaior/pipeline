@@ -3,6 +3,6 @@ __pycache__/
 .uv-cache/
 .pyenv/
 ollama/
-wav-outputs/
+wav_outputs/
 performance_test_outputs/
 notes.txt
