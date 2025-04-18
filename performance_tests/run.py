@@ -41,7 +41,10 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
     if run_synthesis:
         synthesis_test = next((t for t in test_runners if t.name == "synthesis"), None)
         if synthesis_test:
-            synthesis_test.run_test("Dry run text", dry_run_file, collect_metrics=False)
+            result = synthesis_test.run_test("Dry run text", dry_run_file, collect_metrics=False)
+            if "error" in result:
+                print(f"Warning: Dry run synthesis failed: {result['error']}")
+
     if not run_synthesis and run_transcription:
         if not os.path.exists(dry_run_file):
             print(f"Warning: Dry run file {dry_run_file} not found. Transcription dry run may fail.")
@@ -49,12 +52,18 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
     if run_transcription:
         transcription_test = next((t for t in test_runners if t.name == "transcription"), None)
         if transcription_test:
-            transcription_test.run_test(dry_run_file, collect_metrics=False)
+            try:
+                transcription_test.run_test(dry_run_file, collect_metrics=False)
+            except Exception as e:
+                print(f"Warning: Transcription dry run failed: {e}")
 
     if run_llm:
         llm_test = next((t for t in test_runners if t.name == "llm_inference"), None)
         if llm_test:
-            llm_test.run_test(collect_metrics=False)
+            try:
+                llm_test.run_test(collect_metrics=False)
+            except Exception as e:
+                print(f"Warning: LLM inference dry run failed: {e}")
 
     print("Starting performance test...")
 
@@ -64,7 +73,12 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
         if run_synthesis:
             synthesis_test = next((t for t in test_runners if t.name == "synthesis"), None)
             if synthesis_test:
-                synthesis_test.run_test(text, output_file)
+                try:
+                    result = synthesis_test.run_test(text, output_file)
+                    if "error" in result:
+                        print(f"Warning: Synthesis failed for text {idx + 1}: {result['error']}")
+                except Exception as e:
+                    print(f"Error in synthesis test for text {idx + 1}: {e}")
 
         if run_transcription:
             if not run_synthesis and not os.path.exists(output_file):
@@ -73,12 +87,18 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
 
             transcription_test = next((t for t in test_runners if t.name == "transcription"), None)
             if transcription_test:
-                transcription_test.run_test(output_file)
+                try:
+                    transcription_test.run_test(output_file)
+                except Exception as e:
+                    print(f"Error in transcription test for text {idx + 1}: {e}")
 
         if run_llm:
             llm_test = next((t for t in test_runners if t.name == "llm_inference"), None)
             if llm_test:
-                llm_test.run_test()
+                try:
+                    llm_test.run_test()
+                except Exception as e:
+                    print(f"Error in LLM inference test for text {idx + 1}: {e}")
 
     results = {test.name: test.get_results() for test in test_runners}
     results_string = format_results(results, test_runners, disabled_components)

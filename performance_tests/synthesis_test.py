@@ -8,6 +8,11 @@ class SynthesisTest(PerformanceTest):
 
     def run_test(self, text, output_file, collect_metrics=True):
         result = get_synth_stats(text, output_file)
-        self.add_metric("ram_usages", result["ram_usage_mb"], collect_metrics)
-        self.add_metric("rtf_values", result["real_time_factor"], collect_metrics)
+
+        # Check if needed keys exist in the result before accessing them
+        if "ram_usage_mb" in result:
+            self.add_metric("ram_usages", result["ram_usage_mb"], collect_metrics)
+        if "real_time_factor" in result:
+            self.add_metric("rtf_values", result["real_time_factor"], collect_metrics)
+
         return result
