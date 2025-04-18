@@ -71,8 +71,6 @@ def save_results(results_string):
     with open(log_file_path, "w") as log_file:
         log_file.write(results_string)
 
-    print(f"\nResults saved to: {log_file_path}")
-
     latest_link_path = os.path.abspath(os.path.join(log_folder_path, "latest"))
     if os.path.islink(latest_link_path) or os.path.exists(latest_link_path):
         os.remove(latest_link_path)

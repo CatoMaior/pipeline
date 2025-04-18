@@ -9,6 +9,8 @@ def parse_arguments():
                         help="Skip synthesis performance tests")
     parser.add_argument("--no-llm", action="store_true",
                         help="Skip LLM inference performance tests")
+    parser.add_argument("--save", action="store_true",
+                        help="Save performance results to a file")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -16,5 +18,6 @@ if __name__ == "__main__":
     run_performance_tests(
         run_transcription=not args.no_transcription,
         run_synthesis=not args.no_synthesis,
-        run_llm=not args.no_llm
+        run_llm=not args.no_llm,
+        save_results=args.save
     )

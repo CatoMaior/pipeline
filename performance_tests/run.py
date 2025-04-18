@@ -6,7 +6,7 @@ from .synthesis_test import SynthesisTest
 from .llm_inference_test import LLMInferenceTest
 from .utils import format_results, save_results
 
-def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=True):
+def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=True, save_results=False):
     """Main function to run all performance tests"""
     from core.config import Config
 
@@ -84,4 +84,7 @@ def run_performance_tests(run_transcription=True, run_synthesis=True, run_llm=Tr
     results_string = format_results(results, test_runners, disabled_components)
 
     print(results_string)
-    save_results(results_string)
+
+    if save_results:
+        saved_path = save_results(results_string)
+        print(f"Results saved to: {saved_path}")

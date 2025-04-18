@@ -49,6 +49,7 @@ python performance_test.py [options]
 - `--no-transcription`: Skip transcription performance tests
 - `--no-synthesis`: Skip synthesis performance tests  
 - `--no-llm`: Skip LLM inference performance tests
+- `--save`: Save the performance test results to a file
 
 For example, to test only the LLM component:
 ```
