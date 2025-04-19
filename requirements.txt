@@ -10,3 +10,4 @@ numba==0.60
 piper-tts==1.2.0
 pyparsing==3.2.3
 psutil==7.0.0
+datasets==3.5.0
