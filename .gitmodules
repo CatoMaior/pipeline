@@ -1,0 +1,3 @@
+[submodule "benchmarks/mmlu"]
+	path = benchmarks/mmlu
+	url = https://huggingface.co/datasets/cais/mmlu
