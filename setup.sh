@@ -62,6 +62,7 @@ print_help() {
 	echo "Options:"
 	echo "  --run-parts=PARTS            Specify which parts to run (comma-separated). Options:"
 	echo "                                dependencies    - Install system dependencies."
+	echo "                                submodules      - Download and initialize git submodules."
 	echo "                                piper           - Download Piper models."
 	echo "                                ollama-install  - Install the Ollama application."
 	echo "                                ollama-config   - Configure Ollama service and pull models."
@@ -113,7 +114,14 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 if should_run_part "dependencies"; then
 	print_message "Installing system dependencies..."
 	sudo apt update
-	sudo apt install -y g++ cmake libportaudio2 wget curl acl zlib1g build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+	sudo apt install -y git-lfs g++ cmake libportaudio2 wget curl acl zlib1g build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+fi
+
+if should_run_part "submodules"; then
+	print_message "Downloading submodules..."
+	git lfs install
+	git submodule init
+	git submodule update --init --recursive
 fi
 
 if should_run_part "piper"; then
