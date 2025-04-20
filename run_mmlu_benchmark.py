@@ -7,6 +7,8 @@ from datasets import load_dataset
 from tqdm import tqdm
 import ollama
 from core.config import LLMConfig
+import argparse
+import sys
 
 # Define constants
 MMLU_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmarks/mmlu")
@@ -246,6 +248,54 @@ def get_user_input():
         "num_examples": num_examples
     }
 
+def parse_args():
+    """Parse command line arguments for the MMLU benchmark"""
+    parser = argparse.ArgumentParser(description="MMLU Benchmark for Large Language Models")
+    
+    # Run all tests from all categories with a single option
+    parser.add_argument('-r', '--run-all', action='store_true',
+                      help='Run all tests for all categories non-interactively')
+    
+    # Subject selection options (mutually exclusive)
+    subject_group = parser.add_mutually_exclusive_group()
+    subject_group.add_argument('-a', '--all-subjects', action='store_true', 
+                              help='Run benchmark on all available subjects')
+    subject_group.add_argument('-s', '--subject', type=str, 
+                              help='Specific subject to test (name or index)')
+    
+    # Number of examples
+    parser.add_argument('-e', '--examples', type=int, default=20,
+                       help='Number of examples per subject (0 for all examples)')
+    
+    # Non-interactive mode flag
+    parser.add_argument('-y', '--non-interactive', action='store_true',
+                       help='Run in non-interactive mode (requires -a or -s)')
+    
+    return parser.parse_args()
+
+def validate_subject(subject_arg):
+    """Validate and normalize the subject argument from command line"""
+    # Get available subjects
+    all_subjects = get_available_subjects()
+    test_subjects = [s for s in all_subjects if s not in ['all', 'auxiliary_train']]
+    
+    # If it's a number (as string), convert to subject name
+    if subject_arg.isdigit():
+        idx = int(subject_arg)
+        if 1 <= idx <= len(test_subjects):
+            return test_subjects[idx-1]
+    
+    # Check if it's a valid subject name
+    if subject_arg in test_subjects:
+        return subject_arg
+        
+    # Invalid subject, print help and exit
+    print(f"Error: '{subject_arg}' is not a valid subject.")
+    print("\nAvailable subjects:")
+    for i, subject in enumerate(test_subjects, 1):
+        print(f"{i}. {subject}")
+    sys.exit(1)
+
 def run_benchmark(options):
     """Run the MMLU benchmark on selected subjects"""
     model_name = options["model_name"]
@@ -287,7 +337,11 @@ def run_benchmark(options):
             subjects = [options["subject"]]
 
         results = []
-        for subject in subjects:
+        for i, subject in enumerate(subjects, 1):
+            # Display progress for multiple subjects
+            if len(subjects) > 1:
+                print(f"\nRunning category {i}/{len(subjects)}: {subject}")
+            
             subject_result = evaluate_subject(
                 subject,
                 model_name,
@@ -338,8 +392,49 @@ if __name__ == "__main__":
     print("Welcome to the MMLU Benchmark")
     print("This tool evaluates Large Language Models on various subjects")
 
-    # Get user inputs interactively
-    options = get_user_input()
-
-    # Run the benchmark with the provided options
-    run_benchmark(options)
+    # Parse command line arguments
+    args = parse_args()
+    
+    # Simple option to run all tests
+    if args.run_all:
+        model_name = LLMConfig.MODEL
+        print(f"\nRunning all tests for all categories with model: {model_name}")
+        
+        options = {
+            "model_name": model_name,
+            "subject": "all",
+            "num_examples": 0  # Run all examples for each subject
+        }
+        run_benchmark(options)
+    # Determine if we should use command line arguments or interactive mode
+    elif args.non_interactive and (args.all_subjects or args.subject):
+        model_name = LLMConfig.MODEL
+        
+        # Determine subject
+        if args.all_subjects:
+            subject = "all"
+        else:
+            subject = validate_subject(args.subject)
+            
+        # Display configuration
+        print(f"\nRunning benchmark with:")
+        print(f"- Model: {model_name}")
+        print(f"- Subject: {subject}")
+        print(f"- Examples per subject: {args.examples if args.examples > 0 else 'all'}")
+        
+        # Run benchmark with command line options
+        options = {
+            "model_name": model_name,
+            "subject": subject,
+            "num_examples": args.examples
+        }
+        run_benchmark(options)
+    else:
+        # If -y is specified but no subject is chosen, show error
+        if args.non_interactive:
+            print("Error: Non-interactive mode requires specifying a subject (-s) or all subjects (-a)")
+            sys.exit(1)
+            
+        # Interactive mode
+        options = get_user_input()
+        run_benchmark(options)
