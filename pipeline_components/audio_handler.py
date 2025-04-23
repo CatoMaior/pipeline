@@ -72,6 +72,7 @@ class AudioHandler:
 
             with stream:
                 self.logger.debug("Awaiting voice input.")
+                print("Listening...")
                 while True:
                     chunk = q.get()
                     if chunk is None or len(chunk) == 0:
@@ -97,6 +98,7 @@ class AudioHandler:
                     if recording and len(speech_buffer) / Config.AUDIO.SAMPLING_RATE > Config.AUDIO.MAX_SPEECH_SECS:
                         end_idx = len(speech_buffer)
                         self.logger.debug("Maximum recording duration reached. Beginning transcription.")
+                        print("Maximum recording duration reached.")
                         break
 
             # Process the recorded audio
@@ -106,6 +108,7 @@ class AudioHandler:
                 return speech_segment
             else:
                 self.logger.warning("No speech was detected.")
+                print("No speech detected.")
                 return None
 
         except Exception as e:
