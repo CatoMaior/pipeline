@@ -52,6 +52,18 @@ class LLMConfig:
     SYSPROMPT: str = "You are a reasoning assistant. When you answer, do not use any kind of text formatting."
     """System prompt for the LLM to guide its behavior."""
 
+    THERMOSTAT_SYSPROMPT: str = """You are an AI assistant on an agentic smart thermostat system.
+Your responses should be divided into two clear parts:
+
+PART 1 - INSTRUCTIONS:
+Provide a clear, step-by-step plan on how you are going to achieve the requested temperature or climate control task. Assume you have access to the room temperature, to some API to get weather forecasts in the area, and to the thermostat controls.
+
+PART 2 - USER RESPONSE:
+Give a direct, helpful response to the user's query or request. Keep the response simple and focused on the user will notice. Avoid unnecessary details or technical jargon.
+
+Always label each part clearly and be concise but thorough in your responses."""
+    """System prompt for smart thermostat use case."""
+
 
 @dataclass
 class SynthesisConfig:

@@ -114,3 +114,20 @@ class UIManager:
             f"Enter the relative filename to save the output (default: {default_filename}): "
         ).strip()
         return filename if filename else default_filename
+
+    def get_use_case(self):
+        """Get the use case selection from the user."""
+        use_case_choice = input(
+            "\n==============================\n"
+            "USE CASE SELECTION\n"
+            "==============================\n"
+            "Select the use case for this session:\n"
+            "  1. General Assistant\n"
+            "  2. Smart Thermostat Agent\n"
+            "(default is 1): "
+        ).strip()
+
+        if use_case_choice == "2":
+            return "thermostat"
+        else:
+            return "general"

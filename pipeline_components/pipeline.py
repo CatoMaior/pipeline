@@ -26,23 +26,31 @@ class Pipeline:
         self.transcriber = TranscriberHandler(self.logger)
         self.llm = LLMHandler(self.logger)
         self.synthesis = SynthesisHandler(self.logger)
+        self.use_case = None
 
         print("Pipeline initialized. Logs will be saved to 'logs/latest.log'")
 
     def run(self):
         """Execute the entire pipeline."""
         try:
+            # First select the use case
+            self.use_case = self.ui.get_use_case()
+            self.logger.info(f"Selected use case: {self.use_case}")
+
             if not self.llm.check_ollama_running():
                 self.logger.critical("Ollama service is not running.")
                 sys.exit(1)
+
             transcribed_text = self._handle_input()
             if not transcribed_text:
                 self.logger.error("No valid input received.")
                 sys.exit(1)
+
             llm_output = self._process_with_llm(transcribed_text)
             if not llm_output:
                 self.logger.error("No valid output from LLM.")
                 sys.exit(1)
+
             self._handle_output(llm_output)
 
         except KeyboardInterrupt:
@@ -76,19 +84,31 @@ class Pipeline:
         if not self.llm.ensure_model_available(Config.LLM.MODEL):
             self.logger.critical(f"Could not obtain model {Config.LLM.MODEL}.")
             sys.exit(1)
+
+        # Use the already selected use case
+        if self.use_case == "thermostat":
+            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT
+            self.logger.info("Using smart thermostat system prompt.")
+        else:  # Default/agnostic case
+            system_prompt = Config.LLM.SYSPROMPT
+            self.logger.info("Using default system prompt.")
+
         messages = [
-            {"role": "system", "content": Config.LLM.SYSPROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": transcribed_text}
         ]
         if "granite3.2" in Config.LLM.MODEL:
             messages.insert(0, {"role": "control", "content": "thinking"})
+
+        print("\nProcessing your request, please wait...")
+
         self.logger.info("Sending input to LLM.")
         response = self.llm.chat(Config.LLM.MODEL, messages)
 
         if response and 'message' in response and 'content' in response['message']:
             llm_output = response['message']['content']
             self.logger.info(f"LLM output: \n{llm_output}")
-            print(f"LLM output: \n{llm_output}")
+            print(f"\nResponse:\n{llm_output}")
             return llm_output
 
         return None
