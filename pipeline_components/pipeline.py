@@ -80,7 +80,7 @@ class Pipeline:
             {"role": "system", "content": Config.LLM.SYSPROMPT},
             {"role": "user", "content": transcribed_text}
         ]
-        if "granite3.2" in Config.LLM.MODEL and self.ui.should_enable_reasoning():
+        if "granite3.2" in Config.LLM.MODEL:
             messages.insert(0, {"role": "control", "content": "thinking"})
         self.logger.info("Sending input to LLM.")
         response = self.llm.chat(Config.LLM.MODEL, messages)
