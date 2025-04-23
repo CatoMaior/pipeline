@@ -24,18 +24,18 @@ class UIManager:
         for i, (key, name) in enumerate(available_use_cases.items(), 1):
             print(f"  {i}. {name}")
 
-        print("(default is 1): ", end="")
+        print("(default is 2): ", end="")  # Changed from 1 to 2
         use_case_choice = input().strip()
 
-        # Default to first option (general)
+        # Default to second option
         if not use_case_choice or not use_case_choice.isdigit():
-            self.current_use_case = list(available_use_cases.keys())[0]
+            self.current_use_case = list(available_use_cases.keys())[1]  # Changed from [0] to [1]
         else:
             idx = int(use_case_choice) - 1
             if 0 <= idx < len(available_use_cases):
                 self.current_use_case = list(available_use_cases.keys())[idx]
             else:
-                self.current_use_case = list(available_use_cases.keys())[0]
+                self.current_use_case = list(available_use_cases.keys())[1]  # Changed from [0] to [1]
 
         return self.current_use_case
 
