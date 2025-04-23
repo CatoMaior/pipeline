@@ -117,17 +117,35 @@ class Pipeline:
         """Handle the output from LLM (save/play synthesized speech)."""
         output_choice = self.ui.get_output_mode()
 
+        # For thermostat use case, extract only the user response part
+        synthesis_text = llm_output
+        if self.use_case == "thermostat":
+            try:
+                # Look for the user response section
+                if "PART 2 - USER RESPONSE:" in llm_output:
+                    # Extract everything after "PART 2 - USER RESPONSE:"
+                    parts = llm_output.split("PART 2 - USER RESPONSE:")
+                    if len(parts) > 1:
+                        synthesis_text = parts[1].strip()
+                        self.logger.info("Extracted user response part for synthesis")
+                else:
+                    self.logger.warning("Expected 'PART 2 - USER RESPONSE:' not found in LLM output")
+            except Exception as e:
+                self.logger.error(f"Error extracting user response: {e}")
+                # Fallback to using the full text
+                synthesis_text = llm_output
+
         filename = None
         if output_choice in ['1', '3']:  # Save or Save and play
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             default_filename = f"{Config.SYNTHESIS.OUTPUT_DIR}/output_{timestamp}.wav"
             filename = self.ui.get_output_filename(default_filename)
 
-            self.synthesis.save_output(llm_output, filename)
+            self.synthesis.save_output(synthesis_text, filename)
             self.logger.info(f"Audio saved to {filename}")
 
         if output_choice == '2':  # Play only
-            self.synthesis.play_raw_output(llm_output)
+            self.synthesis.play_raw_output(synthesis_text)
             self.logger.info("Audio playback completed.")
         elif output_choice == '3':  # Save and play
             self.synthesis.play_output(filename)

@@ -4,7 +4,7 @@ This file contains all configurable parameters for the audio processing pipeline
 including logging, audio processing, speech-to-text, LLM inference, and text-to-speech settings.
 """
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Dict
 
 
 @dataclass
@@ -32,8 +32,9 @@ class AudioConfig:
     VAD_MIN_SILENCE_MS: int = 500
     """Minimum silence duration (in ms) to consider speech as ended."""
 
-    WAV_FILE_PATH: str = "input.wav"
-    """Path to the default WAV file to be used as input."""
+    # Default WAV paths are now managed by the UseCaseManager
+    DEFAULT_WAV_DIR: str = "use_cases"
+    """Directory containing use case-specific resources."""
 
 
 @dataclass
@@ -76,6 +77,20 @@ class SynthesisConfig:
 
 
 @dataclass
+class UseCaseConfig:
+    """Use case configuration settings."""
+    AVAILABLE_USE_CASES: Dict[str, str] = None
+    """Available use cases with their display names."""
+
+    def __post_init__(self):
+        if self.AVAILABLE_USE_CASES is None:
+            self.AVAILABLE_USE_CASES = {
+                "general": "General Assistant",
+                "thermostat": "Smart Thermostat Agent"
+            }
+
+
+@dataclass
 class Config:
     """Main configuration class that holds all configuration sections."""
     LOGGING: ClassVar[LoggingConfig] = LoggingConfig()
@@ -83,6 +98,7 @@ class Config:
     TRANSCRIPTION: ClassVar[TranscriptionConfig] = TranscriptionConfig()
     LLM: ClassVar[LLMConfig] = LLMConfig()
     SYNTHESIS: ClassVar[SynthesisConfig] = SynthesisConfig()
+    USE_CASE: ClassVar[UseCaseConfig] = UseCaseConfig()
 
 
 if __name__ == "__main__":

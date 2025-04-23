@@ -1,9 +1,43 @@
 import os
-from .questions import questions
 from core import Config
+from use_cases.use_case_manager import UseCaseManager
 
 class UIManager:
     """Handles all user interface interactions including prompts and input parsing."""
+
+    def __init__(self):
+        """Initialize the UI manager."""
+        self.use_case_manager = UseCaseManager()
+        self.current_use_case = "general"  # Default use case
+
+    def get_use_case(self):
+        """Get the use case selection from the user."""
+        # Display available use cases from config
+        available_use_cases = Config.USE_CASE.AVAILABLE_USE_CASES
+
+        print("\n==============================")
+        print("USE CASE SELECTION")
+        print("==============================")
+        print("Select the use case for this session:")
+
+        # Display available use cases
+        for i, (key, name) in enumerate(available_use_cases.items(), 1):
+            print(f"  {i}. {name}")
+
+        print("(default is 1): ", end="")
+        use_case_choice = input().strip()
+
+        # Default to first option (general)
+        if not use_case_choice or not use_case_choice.isdigit():
+            self.current_use_case = list(available_use_cases.keys())[0]
+        else:
+            idx = int(use_case_choice) - 1
+            if 0 <= idx < len(available_use_cases):
+                self.current_use_case = list(available_use_cases.keys())[idx]
+            else:
+                self.current_use_case = list(available_use_cases.keys())[0]
+
+        return self.current_use_case
 
     def get_interaction_mode(self):
         """Ask user to choose interaction mode (audio or text)."""
@@ -20,6 +54,9 @@ class UIManager:
 
     def get_text_input(self):
         """Get user input as text, either custom or from predefined questions."""
+        # Get the questions for the current use case
+        use_case_questions = self.use_case_manager.get_questions(self.current_use_case)
+
         text_input_choice = input(
             "\n==============================\n"
             "TEXT INPUT MODE\n"
@@ -31,9 +68,9 @@ class UIManager:
         ).strip()
 
         if text_input_choice != '1':
-            # Show predefined questions
+            # Show predefined questions for the current use case
             print("\nAvailable Questions:")
-            for idx, question in enumerate(questions, start=1):
+            for idx, question in enumerate(use_case_questions, start=1):
                 print(f"  {idx}. {question}")
 
             question_idx = input(
@@ -42,10 +79,10 @@ class UIManager:
             question_idx = int(question_idx) - 1 if question_idx.isdigit() else 0
 
             # Validate index
-            if 0 <= question_idx < len(questions):
-                return questions[question_idx]
+            if 0 <= question_idx < len(use_case_questions):
+                return use_case_questions[question_idx]
             else:
-                return questions[0]  # Default to first question
+                return use_case_questions[0]  # Default to first question
         else:
             # Get custom input
             return input("Enter your input text: ").strip()
@@ -65,14 +102,33 @@ class UIManager:
 
     def get_wav_file_path(self):
         """Get WAV file path from user."""
-        default_wav_path = Config.AUDIO.WAV_FILE_PATH
+        # Get the default WAV file for the current use case
+        default_absolute_path = self.use_case_manager.get_input_wav_path(self.current_use_case)
+
+        # Convert to a relative path for display purposes
+        cwd = os.path.abspath(os.getcwd())
+        if default_absolute_path.startswith(cwd):
+            # Create a path relative to current working directory
+            display_path = os.path.relpath(default_absolute_path, cwd)
+        else:
+            # If not under current directory, just use the filename
+            display_path = os.path.basename(default_absolute_path)
+
         wav_file_path = input(
             f"\n==============================\n"
             "WAV FILE INPUT\n"
             "==============================\n"
-            f"Enter the relative path to the WAV file (default: {default_wav_path}): "
+            f"Enter the relative path to the WAV file (default: {display_path}): "
         ).strip()
-        return wav_file_path if wav_file_path else default_wav_path
+
+        # If user provided a path, use it; otherwise return the absolute path from use case manager
+        if wav_file_path:
+            # If the user provided a relative path, make it absolute
+            if not os.path.isabs(wav_file_path):
+                wav_file_path = os.path.abspath(os.path.join(cwd, wav_file_path))
+            return wav_file_path
+        else:
+            return default_absolute_path
 
     def should_enable_reasoning(self):
         """Ask if reasoning should be enabled for Granite models."""
@@ -114,20 +170,3 @@ class UIManager:
             f"Enter the relative filename to save the output (default: {default_filename}): "
         ).strip()
         return filename if filename else default_filename
-
-    def get_use_case(self):
-        """Get the use case selection from the user."""
-        use_case_choice = input(
-            "\n==============================\n"
-            "USE CASE SELECTION\n"
-            "==============================\n"
-            "Select the use case for this session:\n"
-            "  1. General Assistant\n"
-            "  2. Smart Thermostat Agent\n"
-            "(default is 1): "
-        ).strip()
-
-        if use_case_choice == "2":
-            return "thermostat"
-        else:
-            return "general"
