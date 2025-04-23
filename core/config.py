@@ -65,6 +65,56 @@ Give a direct, helpful response to the user's query or request. A sentence about
 Always label each part clearly."""
     """System prompt for smart thermostat use case."""
 
+    # Dictionary mapping model prefixes to their reasoning activation methods
+    REASONING_CONFIG: dict = None
+    """Dictionary mapping model prefixes to their reasoning activation methods."""
+
+    REASONING_ENABLED: bool = True
+    """Whether reasoning is enabled for models that support it."""
+
+    def __post_init__(self):
+        if self.REASONING_CONFIG is None:
+            self.REASONING_CONFIG = {
+                # Method: 'control/thinking' uses the control role with 'thinking' content
+                "granite3.2": {"method": "control/thinking"},
+                "granite3.3": {"method": "control/thinking"},
+                # Add other models with potentially different methods here
+                # Example: "other-model": {"method": "different-method", "parameters": {...}}
+            }
+
+    def get_reasoning_method(self, model_name: str) -> dict:
+        """Get the reasoning activation method for the given model.
+
+        Args:
+            model_name: The name of the model to check
+
+        Returns:
+            Dictionary containing reasoning method info or None if reasoning isn't
+            supported/enabled for this model
+        """
+        if not self.REASONING_ENABLED:
+            return None
+
+        for prefix, config in self.REASONING_CONFIG.items():
+            if model_name.startswith(prefix):
+                return config
+
+        return None
+
+    def needs_reasoning(self, model_name: str) -> bool:
+        """Check if the given model needs reasoning activation.
+
+        This is a convenience method that returns a boolean rather than the full
+        reasoning configuration.
+
+        Args:
+            model_name: The name of the model to check
+
+        Returns:
+            True if the model requires reasoning activation, False otherwise
+        """
+        return self.get_reasoning_method(model_name) is not None
+
 
 @dataclass
 class SynthesisConfig:
