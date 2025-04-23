@@ -97,8 +97,13 @@ class Pipeline:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": transcribed_text}
         ]
-        if "granite3.2" in Config.LLM.MODEL:
-            messages.insert(0, {"role": "control", "content": "thinking"})
+
+        # Apply model-specific reasoning method if needed
+        reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
+        if reasoning_method:
+            if reasoning_method["method"] == "control/thinking":
+                self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
+                messages.insert(0, {"role": "control", "content": "thinking"})
 
         print("\nProcessing your request, please wait...")
 
