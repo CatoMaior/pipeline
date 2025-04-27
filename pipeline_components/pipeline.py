@@ -35,6 +35,12 @@ class Pipeline:
         self.llm = LLMHandler(self.logger)
         self.synthesis = SynthesisHandler(self.logger)
         self.use_case = None
+        self.conversation_history = []  # Store the conversation history
+
+        # Track the input method used
+        self.use_audio = None  # Will be True for audio, False for text
+        self.listen_from_wav = None  # Will be True for WAV, False for microphone
+        self.wav_file_path = None  # For WAV file path if applicable
 
         print("Pipeline initialized. Logs will be saved to 'logs/latest.log'")
 
@@ -53,17 +59,27 @@ class Pipeline:
                 self.logger.critical("Ollama service is not running.")
                 sys.exit(1)
 
-            transcribed_text = self._handle_input()
-            if not transcribed_text:
+            # Get initial input
+            initial_input = self._handle_input()
+            if not initial_input:
                 self.logger.error("No valid input received.")
                 sys.exit(1)
 
-            llm_output = self._process_with_llm(transcribed_text)
+            # Process initial request
+            llm_output = self._process_with_llm(initial_input)
             if not llm_output:
                 self.logger.error("No valid output from LLM.")
                 sys.exit(1)
 
             self._handle_output(llm_output)
+
+            # Store initial interaction
+            self.conversation_history.append({"role": "user", "content": initial_input})
+            self.conversation_history.append({"role": "assistant", "content": llm_output})
+
+            # Check if follow-up interactions are enabled
+            if self.options.get("enable_follow_up", True):
+                self._handle_follow_up_interactions()
 
         except KeyboardInterrupt:
             self.logger.info("Pipeline interrupted by user.")
@@ -72,15 +88,132 @@ class Pipeline:
             self.logger.error(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
-    def _handle_input(self):
-        """Handle user input via text or audio and return transcribed text."""
-        if "interaction_mode" in self.options:
-            use_audio = self.options["interaction_mode"]
-            self.logger.info(f"Using {'audio' if use_audio else 'text'} input mode from command line")
-        else:
-            use_audio = self.ui.get_interaction_mode()
+    def _handle_follow_up_interactions(self):
+        """Handle follow-up interactions with the user."""
+        follow_up_needed = True
 
-        if not use_audio:
+        while follow_up_needed:
+
+            # Get follow-up input using same method as initial interaction
+            additional_input = self._get_input()
+
+            if additional_input is None:
+                self.logger.error("No valid follow-up input received.")
+                follow_up_needed = False
+                continue
+
+            # Check if user wants to end the interaction using LLM to determine intent
+            if self._is_conversation_complete(additional_input):
+                # Generate a farewell message from the LLM
+                farewell_message = self._generate_farewell_message(additional_input)
+                if farewell_message:
+                    print(f"\nResponse:\n{farewell_message}")
+                    # Add to conversation history
+                    self.conversation_history.append({"role": "user", "content": additional_input})
+                    self.conversation_history.append({"role": "assistant", "content": farewell_message})
+                    # Handle output (play/save speech if applicable)
+                    self._handle_output(farewell_message)
+                else:
+                    print("\nThank you for using the pipeline!")
+
+                follow_up_needed = False
+                continue
+
+            # Update conversation history
+            self.conversation_history.append({"role": "user", "content": additional_input})
+
+            # Process the follow-up with the entire conversation history
+            follow_up_output = self._process_follow_up(additional_input)
+
+            if follow_up_output:
+                # Update conversation history with assistant's response
+                self.conversation_history.append({"role": "assistant", "content": follow_up_output})
+
+                # Handle the output (synthesize speech if needed)
+                self._handle_output(follow_up_output)
+            else:
+                self.logger.error("No valid output from follow-up LLM interaction.")
+                follow_up_needed = False
+
+    def _generate_farewell_message(self, user_input):
+        """Generate a farewell message from the LLM when conversation is ending.
+
+        Args:
+            user_input: The user's last input that indicated the end of conversation
+
+        Returns:
+            str: A farewell message from the LLM
+        """
+        try:
+            # Create a special prompt for the farewell message
+            if self.use_case == "thermostat":
+                system_prompt = """You are an AI assistant on a smart thermostat.
+The user has indicated they're done with the conversation.
+Respond with a brief, friendly goodbye message that acknowledges their satisfaction.
+Keep your response to one short sentence."""
+            else:
+                system_prompt = """You are a helpful assistant.
+The user has indicated they're done with the conversation.
+Respond with a brief, friendly goodbye message that acknowledges this.
+Keep your response to one short sentence."""
+
+            # Create conversation context
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ]
+
+            # Apply reasoning method if needed
+            reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
+            if reasoning_method and reasoning_method["method"] == "control/thinking":
+                messages.insert(0, {"role": "control", "content": "thinking"})
+
+            self.logger.info("Generating farewell message")
+            response = self.llm.chat(Config.LLM.MODEL, messages)
+
+            if response and 'message' in response and 'content' in response['message']:
+                farewell = response['message']['content']
+                self.logger.info(f"Farewell message: {farewell}")
+                return farewell
+
+        except Exception as e:
+            self.logger.error(f"Error generating farewell message: {e}")
+
+        return None
+
+    def _get_input(self):
+        """Get user input using the previously established method (text, microphone or WAV)."""
+        if not self.use_audio:
+            # Text input
+            return self.ui.get_text_input()
+        else:
+            # Audio input
+            if self.listen_from_wav:
+                # For follow-ups with WAV, ask for new file path each time
+                wav_file_path = self.ui.get_wav_file_path()
+                speech_segment = self.audio.load_from_wav(wav_file_path)
+            else:
+                # Microphone input
+                speech_segment = self.audio.record_from_microphone()
+
+            if speech_segment is None:
+                return None
+
+            transcribed = self.transcriber.transcribe(speech_segment)
+            self.logger.info(f"Transcription: {transcribed}")
+            print(f"\nTranscription:\n{transcribed}")
+            return transcribed
+
+    def _handle_input(self):
+        """Handle initial user input via text or audio and return transcribed text."""
+        if "interaction_mode" in self.options:
+            self.use_audio = self.options["interaction_mode"]
+            self.logger.info(f"Using {'audio' if self.use_audio else 'text'} input mode from command line")
+        else:
+            self.use_audio = self.ui.get_interaction_mode()
+
+        if not self.use_audio:
+            # Text input
             if "text_input" in self.options:
                 text_input = self.options["text_input"]
                 self.logger.info(f"Using text input from command line: {text_input}")
@@ -88,19 +221,20 @@ class Pipeline:
             else:
                 return self.ui.get_text_input()
         else:
+            # Audio input
             if "audio_source" in self.options:
-                listen_from_wav = self.options["audio_source"]
-                self.logger.info(f"Using {'WAV file' if listen_from_wav else 'microphone'} as audio source from command line")
+                self.listen_from_wav = self.options["audio_source"]
+                self.logger.info(f"Using {'WAV file' if self.listen_from_wav else 'microphone'} as audio source from command line")
             else:
-                listen_from_wav = self.ui.get_audio_source()
+                self.listen_from_wav = self.ui.get_audio_source()
 
-            if listen_from_wav:
+            if self.listen_from_wav:
                 if "wav_file_path" in self.options:
-                    wav_file_path = self.options["wav_file_path"]
-                    self.logger.info(f"Using WAV file from command line: {wav_file_path}")
+                    self.wav_file_path = self.options["wav_file_path"]
+                    self.logger.info(f"Using WAV file from command line: {self.wav_file_path}")
                 else:
-                    wav_file_path = self.ui.get_wav_file_path()
-                speech_segment = self.audio.load_from_wav(wav_file_path)
+                    self.wav_file_path = self.ui.get_wav_file_path()
+                speech_segment = self.audio.load_from_wav(self.wav_file_path)
             else:
                 speech_segment = self.audio.record_from_microphone()
 
@@ -112,6 +246,89 @@ class Pipeline:
             print(f"\nTranscription:\n{transcribed}")
             return transcribed
 
+    def _is_conversation_complete(self, user_input):
+        """Determine if the user wants to end the conversation.
+
+        Uses simple keyword matching as a fallback but also asks the LLM when in doubt.
+
+        Args:
+            user_input: The user's latest input
+
+        Returns:
+            bool: True if the conversation should end, False to continue
+        """
+        # Fast path: obvious keywords suggesting completion
+        completion_keywords = ['no', 'nope', 'no thanks', "i'm done", "i'm good",
+                              "that's it", "that's all", "no more", "nothing else",
+                              "no additional", "satisfied", "sufficient", "enough"]
+
+        # Check if any of the keywords are in the user's input (exact match or substring)
+        for keyword in completion_keywords:
+            if keyword == user_input.lower() or keyword in user_input.lower():
+                self.logger.info(f"Detected conversation completion keyword: '{keyword}'")
+                return True
+
+        # If the response is ambiguous but might indicate completion, ask the LLM
+        if len(user_input.split()) <= 5:  # Short responses might be completion signals
+            try:
+                messages = [
+                    {"role": "system", "content": "You are a helpful assistant that determines if a user response indicates they want to end a conversation. Respond with ONLY 'yes' if they are done or 'no' if they want to continue."},
+                    {"role": "user", "content": f"Does this user response indicate they want to end the conversation (respond with ONLY 'yes' or 'no'): '{user_input}'"}
+                ]
+
+                self.logger.info("Asking LLM to determine if conversation is complete")
+                response = self.llm.chat(Config.LLM.MODEL, messages)
+
+                if response and 'message' in response and 'content' in response['message']:
+                    llm_decision = response['message']['content'].strip().lower()
+                    self.logger.info(f"LLM completion determination: {llm_decision}")
+
+                    # Check if the LLM thinks the conversation is complete
+                    if 'yes' in llm_decision:
+                        return True
+            except Exception as e:
+                self.logger.error(f"Error determining conversation completion: {e}")
+
+        return False
+
+    def _process_follow_up(self, additional_input):
+        """Process a follow-up input with the entire conversation context."""
+        if not self.llm.ensure_model_available(Config.LLM.MODEL):
+            self.logger.critical(f"Could not obtain model {Config.LLM.MODEL}.")
+            return None
+
+        # Use the already selected use case
+        if self.use_case == "thermostat":
+            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT
+        else:  # Default/agnostic case
+            system_prompt = Config.LLM.SYSPROMPT
+
+        # Modify system prompt to include follow-up handling instructions
+        # system_prompt += "\n\nIf the user indicates they don't want to add anything more or are satisfied with the response, acknowledge this and thank them."
+
+        # Create messages with the full conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(self.conversation_history)
+
+        # Apply model-specific reasoning method if available
+        reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
+        if reasoning_method and reasoning_method["method"] == "control/thinking":
+            self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
+            messages.insert(0, {"role": "control", "content": "thinking"})
+
+        print("\nProcessing your follow-up request, please wait...")
+
+        self.logger.info("Sending follow-up input to LLM.")
+        response = self.llm.chat(Config.LLM.MODEL, messages)
+
+        if response and 'message' in response and 'content' in response['message']:
+            llm_output = response['message']['content']
+            self.logger.info(f"Follow-up LLM output: \n{llm_output}")
+            print(f"\nResponse:\n{llm_output}")
+            return llm_output
+
+        return None
+
     def _process_with_llm(self, transcribed_text):
         """Process the transcribed text with LLM."""
         if not self.llm.ensure_model_available(Config.LLM.MODEL):
@@ -120,10 +337,10 @@ class Pipeline:
 
         # Use the already selected use case
         if self.use_case == "thermostat":
-            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT
+            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT + "\n\nAfter your response, ask the user if they want to add more details or have any other questions."
             self.logger.info("Using smart thermostat system prompt.")
         else:  # Default/agnostic case
-            system_prompt = Config.LLM.SYSPROMPT
+            system_prompt = Config.LLM.SYSPROMPT + "\n\nAfter your response, ask the user if they want to add more details or have any other questions."
             self.logger.info("Using default system prompt.")
 
         messages = [
