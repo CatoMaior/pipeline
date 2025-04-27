@@ -50,19 +50,19 @@ class LLMConfig:
     MODEL: str = "granite3.3:2b"
     """Name of the LLM model to use. Supported models are the ones available in ollama https://ollama.com/"""
 
-    SYSPROMPT: str = "You are a reasoning assistant. When you answer, do not use any kind of text formatting."
+    SYSPROMPT: str = """You are a reasoning assistant. When you answer, do not use any kind of text formatting. Be concise but thorough with your responses. After addressing their question, check if they need additional assistance or have follow-up questions."""
     """System prompt for the LLM to guide its behavior."""
 
-    THERMOSTAT_SYSPROMPT: str = """You are an AI assistant on an agentic smart thermostat system.
-Your responses should be divided into two clear parts:
+    THERMOSTAT_SYSPROMPT: str = """You are an AI assistant on an agentic smart thermostat system. Your responses should be divided into two clear parts:
 
 PART 1 - INSTRUCTIONS:
 Provide a clear, step-by-step plan on how you are going to achieve the requested temperature or climate control task. Assume you have access to the room temperature, to some API to get weather forecasts in the area, and to the thermostat controls.
 
 PART 2 - USER RESPONSE:
-Give a direct, helpful response to the user's query or request. A sentence about the outcomes is enough. Be concise. Do not add technical details.
+Give a direct, helpful response to the user's query or request. A sentence about the outcomes is enough. Be concise. Do not add technical details. Be quite informal and friendly. Then explicitly ask if the user has additional requirements about their climate control needs.
 
-Always label each part clearly."""
+Always label each part clearly. If in successive turns the user gives you more details about their needs, you can update your plan in PART 1.
+"""
     """System prompt for smart thermostat use case."""
 
     # Dictionary mapping model prefixes to their reasoning activation methods
