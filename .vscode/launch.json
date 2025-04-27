@@ -1,0 +1,80 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Pipeline: Custom Args",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--use-case", "thermostat", "--mode", "audio", "--source", "microphone", "--output", "play"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Text Mode",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--mode", "text", "--text", "What's the weather like today?"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Audio (Microphone)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--mode", "audio", "--source", "microphone"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Audio (File)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--mode", "audio", "--source", "file", "--file", "wav_performance_tests/test_audio_1.wav"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Thermostat Use Case",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--use-case", "thermostat", "--mode", "text", "--text", "Set the temperature to 72 degrees"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Log to Console",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pipeline",
+            "args": ["--mode", "text", "--text", "Hello, how are you?", "--log-to-console"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Pipeline: Remote Debug",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/home/catomaior/Documents/Tirocinio ST/pipeline"
+                }
+            ]
+        }
+    ]
+}
