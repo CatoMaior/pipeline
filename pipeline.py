@@ -55,6 +55,8 @@ Examples:
     # Miscellaneous
     misc_group.add_argument("--log-to-console", action="store_true",
                         help="Display detailed debug information in the console during execution")
+    misc_group.add_argument("--no-follow-up", action="store_true",
+                        help="Disable follow-up questions for additional details")
 
     return parser.parse_args()
 
@@ -89,6 +91,9 @@ def main():
 
     if args.log_to_console is not None:
         options["log_to_console"] = args.log_to_console
+
+    # Set the follow-up interactions option (enabled by default)
+    options["enable_follow_up"] = not args.no_follow_up
 
     pipeline = Pipeline(options=options)
     pipeline.run()
