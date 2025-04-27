@@ -13,9 +13,17 @@ from .synthesis_handler import SynthesisHandler
 class Pipeline:
     """Main Pipeline class that orchestrates the entire process flow."""
 
-    def __init__(self):
-        """Initialize pipeline components and set up logging."""
-        logger = setup_logging(log_to_console=False)
+    def __init__(self, options=None):
+        """Initialize pipeline components and set up logging.
+
+        Args:
+            options (dict, optional): Command line options to override interactive prompts.
+        """
+        # Store options
+        self.options = options or {}
+
+        # Setup logging
+        logger = setup_logging(log_to_console=self.options.get("log_to_console", False))
         self.logger = logger.getChild(__name__)
         self.logger.debug("Starting pipeline.")
 
@@ -34,8 +42,12 @@ class Pipeline:
         """Execute the entire pipeline."""
         try:
             # First select the use case
-            self.use_case = self.ui.get_use_case()
-            self.logger.info(f"Selected use case: {self.use_case}")
+            if "use_case" in self.options:
+                self.use_case = self.options["use_case"]
+                self.logger.info(f"Selected use case from command line: {self.use_case}")
+            else:
+                self.use_case = self.ui.get_use_case()
+                self.logger.info(f"Selected use case: {self.use_case}")
 
             if not self.llm.check_ollama_running():
                 self.logger.critical("Ollama service is not running.")
@@ -62,18 +74,39 @@ class Pipeline:
 
     def _handle_input(self):
         """Handle user input via text or audio and return transcribed text."""
-        use_audio = self.ui.get_interaction_mode()
-        if not use_audio:
-            return self.ui.get_text_input()
+        if "interaction_mode" in self.options:
+            use_audio = self.options["interaction_mode"]
+            self.logger.info(f"Using {'audio' if use_audio else 'text'} input mode from command line")
         else:
-            listen_from_wav = self.ui.get_audio_source()
+            use_audio = self.ui.get_interaction_mode()
+
+        if not use_audio:
+            if "text_input" in self.options:
+                text_input = self.options["text_input"]
+                self.logger.info(f"Using text input from command line: {text_input}")
+                return text_input
+            else:
+                return self.ui.get_text_input()
+        else:
+            if "audio_source" in self.options:
+                listen_from_wav = self.options["audio_source"]
+                self.logger.info(f"Using {'WAV file' if listen_from_wav else 'microphone'} as audio source from command line")
+            else:
+                listen_from_wav = self.ui.get_audio_source()
+
             if listen_from_wav:
-                wav_file_path = self.ui.get_wav_file_path()
+                if "wav_file_path" in self.options:
+                    wav_file_path = self.options["wav_file_path"]
+                    self.logger.info(f"Using WAV file from command line: {wav_file_path}")
+                else:
+                    wav_file_path = self.ui.get_wav_file_path()
                 speech_segment = self.audio.load_from_wav(wav_file_path)
             else:
                 speech_segment = self.audio.record_from_microphone()
+
             if speech_segment is None:
                 return None
+
             transcribed = self.transcriber.transcribe(speech_segment)
             self.logger.info(f"Transcription: {transcribed}")
             print(f"\nTranscription:\n{transcribed}")
@@ -98,7 +131,7 @@ class Pipeline:
             {"role": "user", "content": transcribed_text}
         ]
 
-        # Apply model-specific reasoning method if needed
+        # Apply model-specific reasoning method if available (always enabled)
         reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
         if reasoning_method:
             if reasoning_method["method"] == "control/thinking":
@@ -120,7 +153,11 @@ class Pipeline:
 
     def _handle_output(self, llm_output):
         """Handle the output from LLM (save/play synthesized speech)."""
-        output_choice = self.ui.get_output_mode()
+        if "output_mode" in self.options:
+            output_choice = self.options["output_mode"]
+            self.logger.info(f"Output mode from command line: {output_choice}")
+        else:
+            output_choice = self.ui.get_output_mode()
 
         # For thermostat use case, extract only the user response part
         synthesis_text = llm_output
@@ -144,7 +181,12 @@ class Pipeline:
         if output_choice in ['1', '3']:  # Save or Save and play
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             default_filename = f"{Config.SYNTHESIS.OUTPUT_DIR}/output_{timestamp}.wav"
-            filename = self.ui.get_output_filename(default_filename)
+
+            if "output_filename" in self.options:
+                filename = self.options["output_filename"]
+                self.logger.info(f"Using output filename from command line: {filename}")
+            else:
+                filename = self.ui.get_output_filename(default_filename)
 
             self.synthesis.save_output(synthesis_text, filename)
             self.logger.info(f"Audio saved to {filename}")
