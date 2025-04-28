@@ -346,10 +346,10 @@ class Pipeline:
 
         # Use the already selected use case
         if self.use_case == "thermostat":
-            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT + "\n\nAfter your response, ask the user if they want to add more details or have any other questions."
+            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT
             self.logger.info("Using smart thermostat system prompt.")
         else:  # Default/agnostic case
-            system_prompt = Config.LLM.SYSPROMPT + "\n\nAfter your response, ask the user if they want to add more details or have any other questions."
+            system_prompt = Config.LLM.SYSPROMPT
             self.logger.info("Using default system prompt.")
 
         messages = [
