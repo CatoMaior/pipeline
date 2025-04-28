@@ -102,7 +102,6 @@ class Pipeline:
                 follow_up_needed = False
                 continue
 
-            print("Processing your request, please wait...")
             # Check if user wants to end the interaction using LLM to determine intent
             if self._is_conversation_complete(additional_input):
                 # Generate a farewell message from the LLM
@@ -148,7 +147,7 @@ class Pipeline:
         try:
             # Create a special prompt for the farewell message
             if self.use_case == "thermostat":
-                system_prompt = """You are a smart thermostat. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges their satisfaction. Keep your response to one short sentence."""
+                system_prompt = """You are a smart thermostat. The user has indicated they're done with the conversation. End the conversation in an informal way."""
             else:
                 system_prompt = """You are a helpful assistant. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges this. Keep your response to one short sentence."""
 
