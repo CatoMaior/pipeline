@@ -102,6 +102,7 @@ class Pipeline:
                 follow_up_needed = False
                 continue
 
+            print("Processing your request, please wait...")
             # Check if user wants to end the interaction using LLM to determine intent
             if self._is_conversation_complete(additional_input):
                 # Generate a farewell message from the LLM
@@ -325,7 +326,7 @@ class Pipeline:
             self.logger.info(f"Message {i+1} - Role: {msg['role']}")
             self.logger.info(f"Content: {msg['content']}")
 
-        print("\nProcessing your follow-up request, please wait...")
+        print("\nProcessing your request, please wait...")
 
         self.logger.info("Sending follow-up input to LLM.")
         response = self.llm.chat(Config.LLM.MODEL, messages)
