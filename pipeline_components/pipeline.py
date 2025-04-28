@@ -147,15 +147,9 @@ class Pipeline:
         try:
             # Create a special prompt for the farewell message
             if self.use_case == "thermostat":
-                system_prompt = """You are an AI assistant on a smart thermostat.
-The user has indicated they're done with the conversation.
-Respond with a brief, friendly goodbye message that acknowledges their satisfaction.
-Keep your response to one short sentence."""
+                system_prompt = """You are a smart thermostat. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges their satisfaction. Keep your response to one short sentence."""
             else:
-                system_prompt = """You are a helpful assistant.
-The user has indicated they're done with the conversation.
-Respond with a brief, friendly goodbye message that acknowledges this.
-Keep your response to one short sentence."""
+                system_prompt = """You are a helpful assistant. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges this. Keep your response to one short sentence."""
 
             # Create conversation context
             messages = [
@@ -167,6 +161,12 @@ Keep your response to one short sentence."""
             reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
             if reasoning_method and reasoning_method["method"] == "control/thinking":
                 messages.insert(0, {"role": "control", "content": "thinking"})
+
+            # Log the full message history including system prompt
+            self.logger.info("Full message history sent to LLM for farewell:")
+            for i, msg in enumerate(messages):
+                self.logger.info(f"Message {i+1} - Role: {msg['role']}")
+                self.logger.info(f"Content: {msg['content']}")
 
             self.logger.info("Generating farewell message")
             response = self.llm.chat(Config.LLM.MODEL, messages)
@@ -276,6 +276,12 @@ Keep your response to one short sentence."""
                     {"role": "user", "content": f"Does this user response indicate they want to end the conversation (respond with ONLY 'yes' or 'no'): '{user_input}'"}
                 ]
 
+                # Log the full message history including system prompt
+                self.logger.info("Full message history sent to LLM for conversation completion check:")
+                for i, msg in enumerate(messages):
+                    self.logger.info(f"Message {i+1} - Role: {msg['role']}")
+                    self.logger.info(f"Content: {msg['content']}")
+
                 self.logger.info("Asking LLM to determine if conversation is complete")
                 response = self.llm.chat(Config.LLM.MODEL, messages)
 
@@ -303,18 +309,21 @@ Keep your response to one short sentence."""
         else:  # Default/agnostic case
             system_prompt = Config.LLM.SYSPROMPT
 
-        # Modify system prompt to include follow-up handling instructions
-        # system_prompt += "\n\nIf the user indicates they don't want to add anything more or are satisfied with the response, acknowledge this and thank them."
-
         # Create messages with the full conversation history
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(self.conversation_history)
 
-        # Apply model-specific reasoning method if available
+        # Apply model-specific reasoning method BEFORE logging
         reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
         if reasoning_method and reasoning_method["method"] == "control/thinking":
             self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
             messages.insert(0, {"role": "control", "content": "thinking"})
+
+        # Log the full message history including system prompt AND reasoning method
+        self.logger.info("Full message history sent to LLM for follow-up:")
+        for i, msg in enumerate(messages):
+            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
+            self.logger.info(f"Content: {msg['content']}")
 
         print("\nProcessing your follow-up request, please wait...")
 
@@ -348,12 +357,18 @@ Keep your response to one short sentence."""
             {"role": "user", "content": transcribed_text}
         ]
 
-        # Apply model-specific reasoning method if available (always enabled)
+        # Apply model-specific reasoning method BEFORE logging
         reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
         if reasoning_method:
             if reasoning_method["method"] == "control/thinking":
                 self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
                 messages.insert(0, {"role": "control", "content": "thinking"})
+
+        # Log the full message history including system prompt AND reasoning method
+        self.logger.info("Full message history sent to LLM:")
+        for i, msg in enumerate(messages):
+            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
+            self.logger.info(f"Content: {msg['content']}")
 
         print("\nProcessing your request, please wait...")
 
