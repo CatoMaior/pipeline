@@ -47,7 +47,7 @@ class TranscriptionConfig:
 @dataclass
 class LLMConfig:
     """LLM inference configuration settings."""
-    MODEL: str = "granite3.3:2b"
+    MODEL: str = "granite3.3:8b"
     """Name of the LLM model to use. Supported models are the ones available in ollama https://ollama.com/"""
 
     SYSPROMPT: str = """You are a reasoning assistant. When you answer, do not use any kind of text formatting. Be concise but thorough with your responses. After addressing their question, check if they need additional assistance or have follow-up questions."""
