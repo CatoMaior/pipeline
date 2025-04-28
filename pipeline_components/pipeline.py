@@ -88,6 +88,19 @@ class Pipeline:
             self.logger.error(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
+    def _log_message_history(self, messages, purpose=""):
+        """Log the full message history to aid in debugging.
+
+        Args:
+            messages: List of message dictionaries to log
+            purpose: Optional description of the purpose of these messages
+        """
+        purpose_text = f" for {purpose}" if purpose else ""
+        self.logger.info(f"Full message history sent to LLM{purpose_text}:")
+        for i, msg in enumerate(messages):
+            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
+            self.logger.info(f"Content: {msg['content']}")
+
     def _handle_follow_up_interactions(self):
         """Handle follow-up interactions with the user."""
         follow_up_needed = True
@@ -123,7 +136,7 @@ class Pipeline:
             self.conversation_history.append({"role": "user", "content": additional_input})
 
             # Process the follow-up with the entire conversation history
-            follow_up_output = self._process_follow_up(additional_input)
+            follow_up_output = self._process_follow_up()
 
             if follow_up_output:
                 # Update conversation history with assistant's response
@@ -162,11 +175,8 @@ class Pipeline:
             if reasoning_method and reasoning_method["method"] == "control/thinking":
                 messages.insert(0, {"role": "control", "content": "thinking"})
 
-            # Log the full message history including system prompt
-            self.logger.info("Full message history sent to LLM for farewell:")
-            for i, msg in enumerate(messages):
-                self.logger.info(f"Message {i+1} - Role: {msg['role']}")
-                self.logger.info(f"Content: {msg['content']}")
+            # Log the full message history
+            self._log_message_history(messages, "farewell")
 
             self.logger.info("Generating farewell message")
             response = self.llm.chat(Config.LLM.MODEL, messages)
@@ -257,33 +267,23 @@ class Pipeline:
         Returns:
             bool: True if the conversation should end, False to continue
         """
-        # Fast path: obvious keywords suggesting completion
-        completion_keywords = ['no', 'nope', 'no thanks', "i'm done", "i'm good",
-                              "that's it", "that's all", "no more", "nothing else",
-                              "no additional", "satisfied", "sufficient", "enough"]
-
-        # Check if any of the keywords are in the user's input (exact match or substring)
-        for keyword in completion_keywords:
-            if keyword == user_input.lower() or keyword in user_input.lower():
-                self.logger.info(f"Detected conversation completion keyword: '{keyword}'")
-                return True
 
         # If the response is ambiguous but might indicate completion, ask the LLM
         if len(user_input.split()) <= 5:  # Short responses might be completion signals
             try:
                 messages = [
-                    {"role": "system", "content": "You are a helpful assistant that determines if a user response indicates they want to end a conversation. Respond with ONLY 'yes' if they are done or 'no' if they want to continue."},
+                    {"role": "system", "content": "You are a helpful assistant that determines if a user response indicates they want to end a conversation. If the user response ends, with a question, the conversation is clearly not finished. Respond with ONLY 'yes' if they are done or 'no' if they want to continue."},
                     {"role": "user", "content": f"Does this user response indicate they want to end the conversation (respond with ONLY 'yes' or 'no'): '{user_input}'"}
                 ]
 
-                # Log the full message history including system prompt
-                self.logger.info("Full message history sent to LLM for conversation completion check:")
-                for i, msg in enumerate(messages):
-                    self.logger.info(f"Message {i+1} - Role: {msg['role']}")
-                    self.logger.info(f"Content: {msg['content']}")
+                # Log the full message history
+                self._log_message_history(messages, "conversation completion check")
 
                 self.logger.info("Asking LLM to determine if conversation is complete")
                 response = self.llm.chat(Config.LLM.MODEL, messages)
+
+                # Log the raw LLM response
+                self.logger.info(f"LLM raw response: {response}")
 
                 if response and 'message' in response and 'content' in response['message']:
                     llm_decision = response['message']['content'].strip().lower()
@@ -297,38 +297,19 @@ class Pipeline:
 
         return False
 
-    def _process_follow_up(self, additional_input):
+    def _process_follow_up(self):
         """Process a follow-up input with the entire conversation context."""
         if not self.llm.ensure_model_available(Config.LLM.MODEL):
             self.logger.critical(f"Could not obtain model {Config.LLM.MODEL}.")
             return None
 
-        # Use the already selected use case
-        if self.use_case == "thermostat":
-            system_prompt = Config.LLM.THERMOSTAT_SYSPROMPT
-        else:  # Default/agnostic case
-            system_prompt = Config.LLM.SYSPROMPT
-
-        # Create messages with the full conversation history
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(self.conversation_history)
-
-        # Apply model-specific reasoning method BEFORE logging
-        reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
-        if reasoning_method and reasoning_method["method"] == "control/thinking":
-            self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
-            messages.insert(0, {"role": "control", "content": "thinking"})
-
-        # Log the full message history including system prompt AND reasoning method
-        self.logger.info("Full message history sent to LLM for follow-up:")
-        for i, msg in enumerate(messages):
-            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
-            self.logger.info(f"Content: {msg['content']}")
+        # Log the conversation history before sending to LLM
+        self._log_message_history(self.conversation_history, "follow-up")
 
         print("\nProcessing your request, please wait...")
 
         self.logger.info("Sending follow-up input to LLM.")
-        response = self.llm.chat(Config.LLM.MODEL, messages)
+        response = self.llm.chat(Config.LLM.MODEL, self.conversation_history)
 
         if response and 'message' in response and 'content' in response['message']:
             llm_output = response['message']['content']
@@ -364,11 +345,8 @@ class Pipeline:
                 self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
                 messages.insert(0, {"role": "control", "content": "thinking"})
 
-        # Log the full message history including system prompt AND reasoning method
-        self.logger.info("Full message history sent to LLM:")
-        for i, msg in enumerate(messages):
-            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
-            self.logger.info(f"Content: {msg['content']}")
+        # Log the full message history
+        self._log_message_history(messages, "initial request")
 
         print("\nProcessing your request, please wait...")
 
@@ -396,14 +374,14 @@ class Pipeline:
         if self.use_case == "thermostat":
             try:
                 # Look for the user response section
-                if "PART 2 - USER RESPONSE:" in llm_output:
-                    # Extract everything after "PART 2 - USER RESPONSE:"
-                    parts = llm_output.split("PART 2 - USER RESPONSE:")
+                if "USER RESPONSE:" in llm_output:
+                    # Extract everything after "USER RESPONSE:"
+                    parts = llm_output.split("USER RESPONSE:")
                     if len(parts) > 1:
                         synthesis_text = parts[1].strip()
                         self.logger.info("Extracted user response part for synthesis")
                 else:
-                    self.logger.warning("Expected 'PART 2 - USER RESPONSE:' not found in LLM output")
+                    self.logger.warning("Expected 'USER RESPONSE:' not found in LLM output")
             except Exception as e:
                 self.logger.error(f"Error extracting user response: {e}")
                 # Fallback to using the full text
