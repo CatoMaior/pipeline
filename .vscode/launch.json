@@ -11,16 +11,25 @@
             "justMyCode": true,
             "cwd": "${workspaceFolder}"
         },
-        {
-            "name": "Pipeline: Text Mode",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "pipeline",
-            "args": ["--mode", "text", "--text", "What's the weather like today?"],
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "cwd": "${workspaceFolder}"
-        },
+				{
+					"name": "Pipeline: Text Input",
+					"type": "debugpy",
+					"request": "launch",
+					"module": "pipeline",
+					"args": [
+						"--use-case",
+						"thermostat",
+						"--mode",
+						"text",
+						"--text",
+						"I feel cold in the house. Can you warm a bit the room?",
+						"--output",
+						"none"
+					],
+					"console": "integratedTerminal",
+					"justMyCode": true,
+					"cwd": "${workspaceFolder}"
+				},
         {
             "name": "Pipeline: Audio (Microphone)",
             "type": "debugpy",
@@ -37,16 +46,6 @@
             "request": "launch",
             "module": "pipeline",
             "args": ["--mode", "audio", "--source", "file", "--file", "wav_performance_tests/test_audio_1.wav"],
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Pipeline: Thermostat Use Case",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "pipeline",
-            "args": ["--use-case", "thermostat", "--mode", "text", "--text", "Set the temperature to 72 degrees"],
             "console": "integratedTerminal",
             "justMyCode": true,
             "cwd": "${workspaceFolder}"
