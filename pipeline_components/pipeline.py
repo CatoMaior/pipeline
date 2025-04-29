@@ -23,7 +23,8 @@ class Pipeline:
         self.options = options or {}
 
         # Setup logging
-        logger = setup_logging(log_to_console=self.options.get("log_to_console", False))
+        logger = setup_logging(
+            log_to_console=self.options.get("log_to_console", False))
         self.logger = logger.getChild(__name__)
         self.logger.debug("Starting pipeline.")
 
@@ -50,7 +51,8 @@ class Pipeline:
             # First select the use case
             if "use_case" in self.options:
                 self.use_case = self.options["use_case"]
-                self.logger.info(f"Selected use case from command line: {self.use_case}")
+                self.logger.info(
+                    f"Selected use case from command line: {self.use_case}")
             else:
                 self.use_case = self.ui.get_use_case()
                 self.logger.info(f"Selected use case: {self.use_case}")
@@ -140,12 +142,14 @@ class Pipeline:
 
             if follow_up_output:
                 # Update conversation history with assistant's response
-                self.conversation_history.append({"role": "assistant", "content": follow_up_output})
+                self.conversation_history.append(
+                    {"role": "assistant", "content": follow_up_output})
 
                 # Handle the output (synthesize speech if needed)
                 self._handle_output(follow_up_output)
             else:
-                self.logger.error("No valid output from follow-up LLM interaction.")
+                self.logger.error(
+                    "No valid output from follow-up LLM interaction.")
                 follow_up_needed = False
 
     def _generate_farewell_message(self, user_input):
@@ -218,7 +222,8 @@ class Pipeline:
         """Handle initial user input via text or audio and return transcribed text."""
         if "interaction_mode" in self.options:
             self.use_audio = self.options["interaction_mode"]
-            self.logger.info(f"Using {'audio' if self.use_audio else 'text'} input mode from command line")
+            self.logger.info(
+                f"Using {'audio' if self.use_audio else 'text'} input mode from command line")
         else:
             self.use_audio = self.ui.get_interaction_mode()
 
@@ -226,7 +231,8 @@ class Pipeline:
             # Text input
             if "text_input" in self.options:
                 text_input = self.options["text_input"]
-                self.logger.info(f"Using text input from command line: {text_input}")
+                self.logger.info(
+                    f"Using text input from command line: {text_input}")
                 return text_input
             else:
                 return self.ui.get_text_input()
@@ -234,14 +240,16 @@ class Pipeline:
             # Audio input
             if "audio_source" in self.options:
                 self.listen_from_wav = self.options["audio_source"]
-                self.logger.info(f"Using {'WAV file' if self.listen_from_wav else 'microphone'} as audio source from command line")
+                self.logger.info(
+                    f"Using {'WAV file' if self.listen_from_wav else 'microphone'} as audio source from command line")
             else:
                 self.listen_from_wav = self.ui.get_audio_source()
 
             if self.listen_from_wav:
                 if "wav_file_path" in self.options:
                     self.wav_file_path = self.options["wav_file_path"]
-                    self.logger.info(f"Using WAV file from command line: {self.wav_file_path}")
+                    self.logger.info(
+                        f"Using WAV file from command line: {self.wav_file_path}")
                 else:
                     self.wav_file_path = self.ui.get_wav_file_path()
                 speech_segment = self.audio.load_from_wav(self.wav_file_path)
@@ -276,24 +284,28 @@ class Pipeline:
                     {"role": "user", "content": f"Does this user response indicate they want to end the conversation (respond with ONLY 'yes' or 'no'): '{user_input}'"}
                 ]
 
-                # Log the full message history
-                self._log_message_history(messages, "conversation completion check")
+            # Log the full message history
+            self._log_message_history(
+                messages, "conversation completion check")
 
-                self.logger.info("Asking LLM to determine if conversation is complete")
-                response = self.llm.chat(Config.LLM.MODEL, messages)
+            self.logger.info(
+                "Asking LLM to determine if conversation is complete")
+            response = self.llm.chat(Config.LLM.MODEL, messages)
 
-                # Log the raw LLM response
-                self.logger.info(f"LLM raw response: {response}")
+            # Log the raw LLM response
+            self.logger.info(f"LLM raw response: {response}")
 
-                if response and 'message' in response and 'content' in response['message']:
-                    llm_decision = response['message']['content'].strip().lower()
-                    self.logger.info(f"LLM completion determination: {llm_decision}")
+            if response and 'message' in response and 'content' in response['message']:
+                llm_decision = response['message']['content'].strip().lower()
+                self.logger.info(
+                    f"LLM completion determination: {llm_decision}")
 
-                    # Check if the LLM thinks the conversation is complete
-                    if 'yes' in llm_decision:
-                        return True
-            except Exception as e:
-                self.logger.error(f"Error determining conversation completion: {e}")
+                # Check if the LLM thinks the conversation is complete
+                if 'yes' in llm_decision:
+                    return True
+        except Exception as e:
+            self.logger.error(
+                f"Error determining conversation completion: {e}")
 
         return False
 
@@ -342,8 +354,10 @@ class Pipeline:
         reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
         if reasoning_method:
             if reasoning_method["method"] == "control/thinking":
-                self.logger.info(f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
-                messages.insert(0, {"role": "control", "content": "thinking"})
+                self.logger.info(
+                    f"Applying reasoning method 'control/thinking' for {Config.LLM.MODEL}")
+                self.conversation_history.insert(
+                    1, {"role": "control", "content": "thinking"})
 
         # Log the full message history
         self._log_message_history(messages, "initial request")
@@ -379,9 +393,11 @@ class Pipeline:
                     parts = llm_output.split("USER RESPONSE:")
                     if len(parts) > 1:
                         synthesis_text = parts[1].strip()
-                        self.logger.info("Extracted user response part for synthesis")
+                        self.logger.info(
+                            "Extracted user response part for synthesis")
                 else:
-                    self.logger.warning("Expected 'USER RESPONSE:' not found in LLM output")
+                    self.logger.warning(
+                        "Expected 'USER RESPONSE:' not found in LLM output")
             except Exception as e:
                 self.logger.error(f"Error extracting user response: {e}")
                 # Fallback to using the full text
@@ -394,7 +410,8 @@ class Pipeline:
 
             if "output_filename" in self.options:
                 filename = self.options["output_filename"]
-                self.logger.info(f"Using output filename from command line: {filename}")
+                self.logger.info(
+                    f"Using output filename from command line: {filename}")
             else:
                 filename = self.ui.get_output_filename(default_filename)
 
