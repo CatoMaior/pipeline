@@ -162,7 +162,7 @@ class Pipeline:
 
             # Create a special prompt for the farewell message
             if self.use_case == "thermostat":
-                system_prompt = """You are a smart thermostat. Use at most a pair of sentences.\nKeep a simple and friendly tone. Do not ask any question."""
+                system_prompt = """You are a smart thermostat. Use at most a pair of sentences.\nDo not add any details about the plan.\nKeep a simple and friendly tone. Do not ask any question."""
             else:
                 system_prompt = """You are a helpful assistant. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges this. Keep your response to one short sentence."""
 
