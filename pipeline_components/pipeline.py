@@ -1,3 +1,4 @@
+import json
 import sys
 from datetime import datetime
 
@@ -9,6 +10,7 @@ from .audio_handler import AudioHandler
 from .transcriber_handler import TranscriberHandler
 from .llm_handler import LLMHandler
 from .synthesis_handler import SynthesisHandler
+
 
 class Pipeline:
     """Main Pipeline class that orchestrates the entire process flow."""
@@ -75,10 +77,6 @@ class Pipeline:
 
             self._handle_output(llm_output)
 
-            # Store initial interaction
-            self.conversation_history.append({"role": "user", "content": initial_input})
-            self.conversation_history.append({"role": "assistant", "content": llm_output})
-
             # Check if follow-up interactions are enabled
             if self.options.get("enable_follow_up", True):
                 self._handle_follow_up_interactions()
@@ -98,10 +96,8 @@ class Pipeline:
             purpose: Optional description of the purpose of these messages
         """
         purpose_text = f" for {purpose}" if purpose else ""
-        self.logger.info(f"Full message history sent to LLM{purpose_text}:")
-        for i, msg in enumerate(messages):
-            self.logger.info(f"Message {i+1} - Role: {msg['role']}")
-            self.logger.info(f"Content: {msg['content']}")
+        self.logger.info(
+            f"Full message history sent to LLM{purpose_text}:\n{json.dumps(messages, indent=4)}")
 
     def _handle_follow_up_interactions(self):
         """Handle follow-up interactions with the user."""
@@ -117,15 +113,19 @@ class Pipeline:
                 follow_up_needed = False
                 continue
 
+            # Add to conversation history
+            self.conversation_history.append(
+                {"role": "user", "content": additional_input})
+
             # Check if user wants to end the interaction using LLM to determine intent
             if self._is_conversation_complete(additional_input):
                 # Generate a farewell message from the LLM
-                farewell_message = self._generate_farewell_message(additional_input)
+                farewell_message = self._generate_farewell_message(
+                    additional_input)
                 if farewell_message:
                     print(f"\nResponse:\n{farewell_message}")
-                    # Add to conversation history
-                    self.conversation_history.append({"role": "user", "content": additional_input})
-                    self.conversation_history.append({"role": "assistant", "content": farewell_message})
+                    self.conversation_history.append(
+                        {"role": "assistant", "content": farewell_message})
                     # Handle output (play/save speech if applicable)
                     self._handle_output(farewell_message)
                 else:
@@ -133,9 +133,6 @@ class Pipeline:
 
                 follow_up_needed = False
                 continue
-
-            # Update conversation history
-            self.conversation_history.append({"role": "user", "content": additional_input})
 
             # Process the follow-up with the entire conversation history
             follow_up_output = self._process_follow_up()
@@ -162,22 +159,21 @@ class Pipeline:
             str: A farewell message from the LLM
         """
         try:
+
             # Create a special prompt for the farewell message
             if self.use_case == "thermostat":
-                system_prompt = """You are a smart thermostat. The user has indicated they're done with the conversation. End the conversation in an informal way."""
+                system_prompt = """You are a smart thermostat. Use at most a pair of sentences.\nKeep a simple and friendly tone. Do not ask any question."""
             else:
                 system_prompt = """You are a helpful assistant. The user has indicated they're done with the conversation. Respond with a brief, friendly goodbye message that acknowledges this. Keep your response to one short sentence."""
 
-            # Create conversation context
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input}
-            ]
+            messages = self.conversation_history
+            # Replace the system message
+            for i, message in enumerate(messages):
+                if message["role"] == "system":
+                    messages[i] = {"role": "system", "content": system_prompt}
+                    break
 
-            # Apply reasoning method if needed
-            reasoning_method = Config.LLM.get_reasoning_method(Config.LLM.MODEL)
-            if reasoning_method and reasoning_method["method"] == "control/thinking":
-                messages.insert(0, {"role": "control", "content": "thinking"})
+            messages.append({"role": "user", "content": user_input})
 
             # Log the full message history
             self._log_message_history(messages, "farewell")
@@ -276,13 +272,11 @@ class Pipeline:
             bool: True if the conversation should end, False to continue
         """
 
-        # If the response is ambiguous but might indicate completion, ask the LLM
-        if len(user_input.split()) <= 5:  # Short responses might be completion signals
-            try:
-                messages = [
-                    {"role": "system", "content": "You are a helpful assistant that determines if a user response indicates they want to end a conversation. If the user response ends, with a question, the conversation is clearly not finished. Respond with ONLY 'yes' if they are done or 'no' if they want to continue."},
-                    {"role": "user", "content": f"Does this user response indicate they want to end the conversation (respond with ONLY 'yes' or 'no'): '{user_input}'"}
-                ]
+        try:
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant that determines if a user input mean that they want to execute some previously agreed actions or not, ending the conversation.\nAssume that when the user asks a question he has still not agreed.\nAssume that if the is giving new information the conversation is not over.\nRespond with ONLY 'yes' if they are done or 'no' if they want to continue."},
+                {"role": "user", "content": f"The last message the user got is: \"{self.conversation_history[-2]['content']}\". The user answered: \"{user_input}\". Does this user response indicate that he wants to execute the previously agreed actions? Respond with ONLY 'yes' or 'no'"}
+            ]
 
             # Log the full message history
             self._log_message_history(
@@ -345,7 +339,7 @@ class Pipeline:
             system_prompt = Config.LLM.SYSPROMPT
             self.logger.info("Using default system prompt.")
 
-        messages = [
+        self.conversation_history = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": transcribed_text}
         ]
@@ -360,17 +354,19 @@ class Pipeline:
                     1, {"role": "control", "content": "thinking"})
 
         # Log the full message history
-        self._log_message_history(messages, "initial request")
+        self._log_message_history(self.conversation_history, "initial request")
 
         print("\nProcessing your request, please wait...")
 
         self.logger.info("Sending input to LLM.")
-        response = self.llm.chat(Config.LLM.MODEL, messages)
+        response = self.llm.chat(Config.LLM.MODEL, self.conversation_history)
 
         if response and 'message' in response and 'content' in response['message']:
             llm_output = response['message']['content']
             self.logger.info(f"LLM output: \n{llm_output}")
             print(f"\nResponse:\n{llm_output}")
+            self.conversation_history.append(
+                {"role": "assistant", "content": llm_output})
             return llm_output
 
         return None
