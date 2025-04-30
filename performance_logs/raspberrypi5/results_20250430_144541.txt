@@ -1,0 +1,31 @@
+Performance Test Results:
+
+Synthesis (piper):
+  RAM Usage:
+    Minimum: 182.5 MB
+    Maximum: 193.5 MB
+    Average: 185.8 MB
+  Real-Time Factor (RTF):
+    Minimum: 0.133
+    Maximum: 0.138
+    Average: 0.135
+
+Transcription (moonshine):
+  RAM Usage:
+    Minimum: 49.55 MB
+    Maximum: 75.0 MB
+    Average: 65.52 MB
+  Real-Time Factor (RTF):
+    Minimum: 0.171
+    Maximum: 0.195
+    Average: 0.185
+
+LLM inference (granite3.3:8b):
+  RAM Usage:
+    Minimum: 6053.5 MB
+    Maximum: 6056.5 MB
+    Average: 6055.1 MB
+  Evaluation Rate:
+    Minimum: 2.3 token/s
+    Maximum: 2.38 token/s
+    Average: 2.36 token/s
